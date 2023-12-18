@@ -6,199 +6,733 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>279</width>
-    <height>286</height>
+    <width>444</width>
+    <height>737</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="ctkCollapsibleButton" name="inputsCollapsibleButton">
-     <property name="text">
-      <string>Inputs</string>
+    <widget class="QFrame" name="frame">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
      </property>
-     <layout class="QFormLayout" name="formLayout_2">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Input volume:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="inputSelector">
-        <property name="toolTip">
-         <string>Pick the input to the algorithm.</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLScalarVolumeNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Image threshold:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="ctkSliderWidget" name="imageThresholdSliderWidget">
-        <property name="toolTip">
-         <string>Set threshold value for computing the output image. Voxels that have intensities lower than this value will set to zero.</string>
-        </property>
-        <property name="singleStep">
-         <double>0.100000000000000</double>
-        </property>
-        <property name="minimum">
-         <double>-100.000000000000000</double>
-        </property>
-        <property name="maximum">
-         <double>500.000000000000000</double>
-        </property>
-        <property name="value">
-         <double>0.500000000000000</double>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="outputsCollapsibleButton">
-     <property name="text">
-      <string>Outputs</string>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
      </property>
-     <layout class="QFormLayout" name="formLayout_4">
+     <layout class="QGridLayout" name="gridLayout_2">
       <item row="0" column="0">
-       <widget class="QLabel" name="label_2">
+       <widget class="ctkCollapsibleButton" name="systemmodel_collapsebutton">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="text">
-         <string>Thresholded volume:</string>
+         <string>System Modeling</string>
         </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="outputSelector">
-        <property name="toolTip">
-         <string>Pick the output to the algorithm.</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLScalarVolumeNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
+        <property name="collapsed">
          <bool>false</bool>
         </property>
-        <property name="noneEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <item>
+              <widget class="QLabel" name="label_7">
+               <property name="text">
+                <string>Projection Data</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Attenuation Correction</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>Collimator-Detector Response</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Scatter Correction</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Upper Window</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>Lower Window</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_3">
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_2">
+               <item>
+                <widget class="QComboBox" name="spect_projectiondata_combobox"/>
+               </item>
+               <item>
+                <widget class="ctkDirectoryButton" name="spect_attenuationdata_directorybutton"/>
+               </item>
+               <item>
+                <widget class="QComboBox" name="spect_collimatorname_combobox">
+                 <item>
+                  <property name="text">
+                   <string>GV-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GV-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GV-EEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GV-MEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GV-HEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GV-LEUR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GV-UEUH</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GM-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GM-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GI-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GI-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GI-MEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GI-HEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GI-ELEG</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GI-LEHX</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G8-LHRS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G8-LEHS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G8-LUHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G8-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G8-ELEG</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G8-MEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G8-HEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GT-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GT-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GO-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GO-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GO-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GT-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GZ-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>HH-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>HH-LEHS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>HH-MEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PB-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PB-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PB-CAHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PB-MEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PB-HEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LEUR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LEHS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LEES</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LESS </string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LEUS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-LETY</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-ME23</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-ME19</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-ME26</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-ME30</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-ME36</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-METY</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>VG-HE51</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-LEUR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-LEMS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-LEHS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-LEUS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-MEUS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-MEHS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ED-MEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ME-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ME-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ME-LEUHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ME-MEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ME-HEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-LEHS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-LEUHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-LHRHS</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-LEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-MLEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-MEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-MHEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MA-HEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-LEAP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-LEUR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-ME</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-HE</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-APFB</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-HRFB</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PR-URFB</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-LEAP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-LEHR</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-ME</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-ME+</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-HE</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-HEGP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-511</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-512</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-THER</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SI-DELU</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="spect_scatter_combobox">
+                 <item>
+                  <property name="text">
+                   <string>Dual Energy Window</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Triple Energy Window</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="spect_upperwindow_combobox">
+                 <item>
+                  <property name="text">
+                   <string>Radiopharmaceutical</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Lower Scatter</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Upper Scatter</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="spect_lowerwindow_combobox">
+                 <item>
+                  <property name="text">
+                   <string>Radiopharmaceutical</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Lower Scatter</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Upper Scatter</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="label_5">
+       <widget class="ctkCollapsibleButton" name="reconstructionalgorithm_collapsiblebutton">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="text">
-         <string>Inverted volume:</string>
+         <string>Reconstruction Algorithms</string>
         </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="qMRMLNodeComboBox" name="invertedOutputSelector">
-        <property name="toolTip">
-         <string>Result with inverted threshold will be written into this volume</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLScalarVolumeNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
+        <property name="collapsed">
          <bool>false</bool>
         </property>
-        <property name="noneEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="0" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_25">
+           <item>
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>Reconstruction Algorithm</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="algorithm_selector_combobox">
+             <item>
+              <property name="text">
+               <string>OSEM</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>OSEMOSL</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>BSREM</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>KEM</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QGroupBox" name="osem_groupbox">
+        <property name="title">
+         <string>OSEM</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QLabel" name="label_8">
+               <property name="text">
+                <string>Iterations</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="osem_interations_spinbox"/>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_2">
+             <item>
+              <widget class="QLabel" name="label_9">
+               <property name="text">
+                <string>Subsets</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="osem_subsets_spinbox"/>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="osem_reconstruct_pushbutton">
+           <property name="text">
+            <string>Reconstruct</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="advancedCollapsibleButton">
-     <property name="text">
-      <string>Advanced</string>
-     </property>
-     <property name="collapsed">
-      <bool>true</bool>
-     </property>
-     <layout class="QFormLayout" name="formLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Invert threshold: </string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QCheckBox" name="invertOutputCheckBox">
-        <property name="toolTip">
-         <string>If checked, values above threshold are set to 0. If unchecked, values below are set to 0.</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="applyButton">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="toolTip">
-      <string>Run the algorithm.</string>
-     </property>
-     <property name="text">
-      <string>Apply</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
    </item>
   </layout>
  </widget>
@@ -210,14 +744,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ctkSliderWidget</class>
+   <class>ctkDirectoryButton</class>
    <extends>QWidget</extends>
-   <header>ctkSliderWidget.h</header>
-  </customwidget>
-  <customwidget>
-   <class>qMRMLNodeComboBox</class>
-   <extends>QWidget</extends>
-   <header>qMRMLNodeComboBox.h</header>
+   <header>ctkDirectoryButton.h</header>
   </customwidget>
   <customwidget>
    <class>qMRMLWidget</class>
@@ -227,54 +756,5 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections>
-  <connection>
-   <sender>pytomography</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>inputSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>122</x>
-     <y>132</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>248</x>
-     <y>61</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pytomography</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>outputSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>82</x>
-     <y>135</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>220</x>
-     <y>161</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pytomography</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>invertedOutputSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>161</x>
-     <y>8</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>173</x>
-     <y>176</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
