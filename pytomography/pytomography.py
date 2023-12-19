@@ -1,25 +1,37 @@
-import logging
-import os
-
 import vtk
-
-import slicer
+from vtk.util import numpy_support
+import slicer, qt
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 
+import logging
+import os
+# from pytomography.io.SPECT import dicom, simind
+# from pytomography.projectors import SPECTSystemMatrix
+# from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
+# from pytomography.algorithms import OSEM
+# from pytomography.transforms import GaussianFilter
+# from torch import poisson
+# import dicom
+# import numpy as np
+
+# from __main__ import qt
+# from PyQt5.QtWidgets import QWidget
+# from PyQt5.QtCore import pyqtSlot
+# from PyQt5 import uic
 
 #
 # pytomography
 #
 
-class pytomography(ScriptedLoadableModule):
+class PyTomography(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "pytomography"  # TODO: make this more human readable by adding spaces
+        self.parent.title = "PyTomography"  # TODO: make this more human readable by adding spaces
         self.parent.categories = ["Pytomography"]  # TODO: set categories (folders where the module shows up in the module selector)
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
         self.parent.contributors = ["Luke Polson (QURIT), Maziar Sabouri (QURIT), Obed Dzikunu (QURIT), Shadab Ahamed (QURIT)"]  # TODO: replace with "Firstname Lastname (Organization)"
@@ -92,7 +104,7 @@ def registerSampleData():
 # pytomographyWidget
 #
 
-class pytomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
+class PyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
@@ -126,7 +138,7 @@ class pytomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
-        self.logic = pytomographyLogic()
+        self.logic = PyTomographyLogic()
 
         # Connections
 
@@ -136,17 +148,12 @@ class pytomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
-        self.ui.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
-        self.ui.outputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
-        self.ui.imageThresholdSliderWidget.connect("valueChanged(double)", self.updateParameterNodeFromGUI)
-        self.ui.invertOutputCheckBox.connect("toggled(bool)", self.updateParameterNodeFromGUI)
-        self.ui.invertedOutputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
 
         # Buttons
-        self.ui.applyButton.connect('clicked(bool)', self.onApplyButton)
+        self.ui.PathLineEdit.connect('currentPathChanged(QString)', self.logic.onPhotoPeakButtonClicked)
+        #self.ui.PathLineEdit.currentTextChanged.connect(self.logic.onPhotoPeakButtonClicked)
 
         # Make sure parameter node is initialized (needed for module reload)
-        self.initializeParameterNode()
 
     def cleanup(self):
         """
@@ -158,8 +165,9 @@ class pytomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Called each time the user opens this module.
         """
+        pass
         # Make sure parameter node exists and observed
-        self.initializeParameterNode()
+        # self.initializeParameterNode()
 
     def exit(self):
         """
@@ -198,98 +206,12 @@ class pytomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if firstVolumeNode:
                 self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
 
-    def setParameterNode(self, inputParameterNode):
-        """
-        Set and observe parameter node.
-        Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
-        """
-
-        if inputParameterNode:
-            self.logic.setDefaultParameters(inputParameterNode)
-
-        # Unobserve previously selected parameter node and add an observer to the newly selected.
-        # Changes of parameter node are observed so that whenever parameters are changed by a script or any other module
-        # those are reflected immediately in the GUI.
-        if self._parameterNode is not None and self.hasObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode):
-            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
-        self._parameterNode = inputParameterNode
-        if self._parameterNode is not None:
-            self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
-
-        # Initial GUI update
-        self.updateGUIFromParameterNode()
-
-    def updateGUIFromParameterNode(self, caller=None, event=None):
-        """
-        This method is called whenever parameter node is changed.
-        The module GUI is updated to show the current state of the parameter node.
-        """
-
-        if self._parameterNode is None or self._updatingGUIFromParameterNode:
-            return
-
-        # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
-        self._updatingGUIFromParameterNode = True
-
-        # Update node selectors and sliders
-        self.ui.inputSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputVolume"))
-        self.ui.outputSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputVolume"))
-        self.ui.invertedOutputSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputVolumeInverse"))
-        self.ui.imageThresholdSliderWidget.value = float(self._parameterNode.GetParameter("Threshold"))
-        self.ui.invertOutputCheckBox.checked = (self._parameterNode.GetParameter("Invert") == "true")
-
-        # Update buttons states and tooltips
-        if self._parameterNode.GetNodeReference("InputVolume") and self._parameterNode.GetNodeReference("OutputVolume"):
-            self.ui.applyButton.toolTip = "Compute output volume"
-            self.ui.applyButton.enabled = True
-        else:
-            self.ui.applyButton.toolTip = "Select input and output volume nodes"
-            self.ui.applyButton.enabled = False
-
-        # All the GUI updates are done
-        self._updatingGUIFromParameterNode = False
-
-    def updateParameterNodeFromGUI(self, caller=None, event=None):
-        """
-        This method is called when the user makes any change in the GUI.
-        The changes are saved into the parameter node (so that they are restored when the scene is saved and loaded).
-        """
-
-        if self._parameterNode is None or self._updatingGUIFromParameterNode:
-            return
-
-        wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
-
-        self._parameterNode.SetNodeReferenceID("InputVolume", self.ui.inputSelector.currentNodeID)
-        self._parameterNode.SetNodeReferenceID("OutputVolume", self.ui.outputSelector.currentNodeID)
-        self._parameterNode.SetParameter("Threshold", str(self.ui.imageThresholdSliderWidget.value))
-        self._parameterNode.SetParameter("Invert", "true" if self.ui.invertOutputCheckBox.checked else "false")
-        self._parameterNode.SetNodeReferenceID("OutputVolumeInverse", self.ui.invertedOutputSelector.currentNodeID)
-
-        self._parameterNode.EndModify(wasModified)
-
-    def onApplyButton(self):
-        """
-        Run processing when user clicks "Apply" button.
-        """
-        with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
-
-            # Compute output
-            self.logic.process(self.ui.inputSelector.currentNode(), self.ui.outputSelector.currentNode(),
-                               self.ui.imageThresholdSliderWidget.value, self.ui.invertOutputCheckBox.checked)
-
-            # Compute inverted output (if needed)
-            if self.ui.invertedOutputSelector.currentNode():
-                # If additional output volume is selected then result with inverted threshold is written there
-                self.logic.process(self.ui.inputSelector.currentNode(), self.ui.invertedOutputSelector.currentNode(),
-                                   self.ui.imageThresholdSliderWidget.value, not self.ui.invertOutputCheckBox.checked, showResult=False)
-
 
 #
 # pytomographyLogic
 #
 
-class pytomographyLogic(ScriptedLoadableModuleLogic):
+class PyTomographyLogic(ScriptedLoadableModuleLogic):
     """This class should implement all the actual
     computation done by your module.  The interface
     should be such that other python code can import
@@ -304,54 +226,78 @@ class pytomographyLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
+        slicer.util.pip_install("pytomography")
+        import pytomography
+        from pytomography.io.SPECT import dicom, simind
+        from pytomography.projectors import SPECTSystemMatrix
+        from pytomography.transforms import SPECTAttenuationTransform, SPECTPSFTransform
+        from pytomography.algorithms import OSEM
+        from pytomography.transforms import GaussianFilter
+        import numpy as np
+        
+        # a = torch.tensor([1])
+        print("Im here")
 
-    def setDefaultParameters(self, parameterNode):
-        """
-        Initialize parameter node with default settings.
-        """
-        if not parameterNode.GetParameter("Threshold"):
-            parameterNode.SetParameter("Threshold", "100.0")
-        if not parameterNode.GetParameter("Invert"):
-            parameterNode.SetParameter("Invert", "false")
+    def onPhotoPeakButtonClicked(self, directory):
+        from pytomography.io.SPECT import dicom, simind
+    # Implement the code to allow the user to select a CT attenuation file
+        if directory:
+            self.object_meta, self.proj_meta = dicom.get_metadata(directory)
+            self.projections = dicom.get_projections(directory)
+            self.display_projections(self.projections)
 
-    def process(self, inputVolume, outputVolume, imageThreshold, invert=False, showResult=True):
-        """
-        Run the processing algorithm.
-        Can be used without GUI widget.
-        :param inputVolume: volume to be thresholded
-        :param outputVolume: thresholding result
-        :param imageThreshold: values above/below this threshold will be set to 0
-        :param invert: if True then values above the threshold will be set to 0, otherwise values below are set to 0
-        :param showResult: show output volume in slice viewers
-        """
+    def display_projections(self, projections):
+        # Load the array from the file
+        array = projections[0].cpu().numpy()
+        print(array.shape)
+        # Create a scalar volume node from the NumPy array
+        volume_node = slicer.vtkMRMLScalarVolumeNode()
+    
+    # Convert NumPy array to VTK array
+        vtk_array = numpy_support.numpy_to_vtk(array.ravel(), array_type=numpy_support.get_vtk_array_type(array.dtype))
+        vtk_image_data = vtk.vtkImageData()
+        vtk_image_data.SetDimensions(array.shape[::-1])
+        vtk_image_data.GetPointData().SetScalars(vtk_array)
+        
+        # Set VTK image data to the volume node
+        volume_node.SetAndObserveImageData(vtk_image_data)
+        
+        # Add the volume node to the scene
+        slicer.mrmlScene.AddNode(volume_node)
+        
+        # Create default display nodes for visualization
+        volume_node.CreateDefaultDisplayNodes()
+        # # Set the spacing and origin (you may need to adjust these based on your data)
+        volume_node.SetSpacing([1.0, 1.0, 1.0])
+        volume_node.SetOrigin([0.0, 0.0, 0.0])
 
-        if not inputVolume or not outputVolume:
-            raise ValueError("Input or output volume is invalid")
+        # # Display the volume in the 3D view
+        # display_node = slicer.modules.volumerendering.logic().GetFirstVolumeRenderingDisplayNode(volume_node)
+        # if not display_node:
+        #     display_node = slicer.modules.volumerendering.logic().CreateVolumeRenderingDisplayNode()
+        #     slicer.mrmlScene.AddNode(display_node)
+        #     slicer.modules.volumerendering.logic().UpdateDisplayNodeFromVolumeNode(display_node, volume_node)
 
-        import time
-        startTime = time.time()
-        logging.info('Processing started')
+        # # Set the rendering parameters (you may need to adjust these based on your data)
+        # display_node.SetVisibility3DFill(True)
+        # display_node.SetVisibility2DFill(True)
+        # display_node.SetVisibility2DFill(False)
+        # display_node.SetVisibility2DOutline(True)
+        # display_node.SetVisibility3DOutline(True)
 
-        # Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
-        cliParams = {
-            'InputVolume': inputVolume.GetID(),
-            'OutputVolume': outputVolume.GetID(),
-            'ThresholdValue': imageThreshold,
-            'ThresholdType': 'Above' if invert else 'Below'
-        }
-        cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
-        # We don't need the CLI module node anymore, remove it to not clutter the scene with it
-        slicer.mrmlScene.RemoveNode(cliNode)
+        # Set the window/level (you may need to adjust these based on your data)
+        #display_node.SetWindowLevel(255, 128)
 
-        stopTime = time.time()
-        logging.info(f'Processing completed in {stopTime-startTime:.2f} seconds')
+        # # Fit the 3D view to the loaded volume
+        # slicer.app.processEvents()
+        # slicer.app.applicationLogic().FitSliceToAll()
 
 
 #
 # pytomographyTest
 #
 
-class pytomographyTest(ScriptedLoadableModuleTest):
+class PyTomographyTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
     Uses ScriptedLoadableModuleTest base class, available at:
