@@ -177,12 +177,16 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.spect_attenuation_directorybutton.connect('directoryChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_collimator_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
+        self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_upperwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_lowerwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
+        self.ui.osem_iterations_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
+        self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
 
         # Buttons
         self.ui.PathLineEdit.connect('currentPathChanged(QString)', self.getProjectionData)
+        self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
 
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -202,7 +206,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # if self._parameterNode:
         #     self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
         #     self._parameterNodeGuiTag = None
-        self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGuiFromParameterNode)# self._checkCanApply)
+        self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)# self._checkCanApply)
 
     def onSceneStartClose(self, caller, event) -> None:
         """Called just before the scene is closed."""
@@ -223,6 +227,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.setParameterNode(self.logic.getParameterNode())
 
         # Select default input nodes if nothing is selected yet to save a few clicks for the user
+        
         # if not self._parameterNode.inputVolume:
         #     firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
         #     if firstVolumeNode:
@@ -286,9 +291,22 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.spect_attenuation_directorybutton.directory = self._parameterNode.GetParameter("AttenuationDirectory")
         self.ui.spect_collimator_combobox.setCurrentText(self._parameterNode.GetParameter("Collimator"))
         self.ui.spect_scatter_combobox.setCurrentText(self._parameterNode.GetParameter("Scatter"))
-        self.ui.spect_upperwindow_combobox.setCurrentText(self._parameterNode.GetParameter("UpperWindow"))
-        self.ui.spect_lowerwindow_combobox.setCurrentText(self._parameterNode.GetParameter("LowerWindow"))
+
+        photopeak_value = self._parameterNode.GetParameter("Photopeak")
+        photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
+        self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
+
+        upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
+        upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
+        self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
+
+        lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
+        lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
+        self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
+
         self.ui.algorithm_selector_combobox.setCurrentText(self._parameterNode.GetParameter("Algorithm"))
+        self.ui.osem_iterations_spinbox.setValue(int(self._parameterNode.GetParameter('Iterations')))
+        self.ui.osem_subsets_spinbox.setValue(int(self._parameterNode.GetParameter('Subsets')))
 
         # All the GUI updates are done
         self._updatingGUIFromParameterNode = False
@@ -306,11 +324,14 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self._parameterNode.SetParameter("Path", self.ui.PathLineEdit.currentPath)
         self._parameterNode.SetParameter("AttenuationDirectory", self.ui.spect_attenuation_directorybutton.directory)
-        self._parameterNode.SetParameter("Collimator", self.ui.spect_collimator_combobox.currentText())
-        self._parameterNode.SetParameter("Scatter", self.ui.spect_scatter_combobox.currentText())
-        self._parameterNode.SetParameter("UpperWindow", self.ui.spect_upperwindow_combobox.currentText())
-        self._parameterNode.SetParameter("LowerWindow", self.ui.spect_lowerwindow_combobox.currentText())
-        self._parameterNode.SetParameter("Algorithm", self.ui.algorithm_selector_combobox.currentText())
+        self._parameterNode.SetParameter("Collimator", self.ui.spect_collimator_combobox.currentText)
+        self._parameterNode.SetParameter("Scatter", self.ui.spect_scatter_combobox.currentText)
+        self._parameterNode.SetParameter("Photopeak", str(self.ui.photopeak_combobox.currentText))
+        self._parameterNode.SetParameter("UpperWindow", str(self.ui.spect_upperwindow_combobox.currentText))
+        self._parameterNode.SetParameter("LowerWindow", str(self.ui.spect_lowerwindow_combobox.currentText))
+        self._parameterNode.SetParameter("Algorithm", self.ui.algorithm_selector_combobox.currentText)
+        self._parameterNode.SetParameter("Iterations", str(self.ui.osem_iterations_spinbox.value))
+        self._parameterNode.SetParameter("Subsets", str(self.ui.osem_subsets_spinbox.value))
 
         self._parameterNode.EndModify(wasModified)
 
@@ -331,6 +352,15 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     #     else:
     #         self.ui.applyButton.toolTip = _("Select input and output volume nodes")
     #         self.ui.applyButton.enabled = False
+        
+    def onReconstructButton(self):
+        self.logic.reconstruct( 
+            self.ui.PathLineEdit.currentPath, self.ui.spect_attenuation_directorybutton.directory, 
+            self.ui.spect_collimator_combobox.currentText, self.ui.spect_scatter_combobox.currentText, 
+            self.ui.photopeak_combobox.currentIndex, self.ui.spect_upperwindow_combobox.currentIndex, 
+            self.ui.spect_lowerwindow_combobox.currentIndex, self.ui.algorithm_selector_combobox.currentText, 
+            self.ui.osem_iterations_spinbox.value, self.ui.osem_subsets_spinbox.value
+        )
 
     # def onApplyButton(self) -> None:
     #     """Run processing when user clicks "Apply" button."""
@@ -368,7 +398,7 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
-        slicer.util.pip_install("pytomography==1.3.5")
+        slicer.util.pip_install("pytomography==2.0.1")
         import pytomography
         from pytomography.io.SPECT import dicom, simind
         from pytomography.projectors.SPECT import SPECTSystemMatrix
@@ -417,8 +447,12 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
             parameterNode.SetParameter("LowerWindow", "Select Lower Window")
         if not parameterNode.GetParameter("Algorithm"):
             parameterNode.SetParameter("Algorithm", "Select Algorithm")
+        if not parameterNode.GetParameter("Iterations"):
+            parameterNode.SetParameter("Iterations", "0")
+        if not parameterNode.GetParameter("Subsets"):
+            parameterNode.SetParameter("Subsets", "0")
 
-    def onPhotoPeakButtonClicked(self, directory):
+    def reconstruct(self, projection_data, ct_path, collimator, scatter, photopeak, upperwindow, lowerwindow, algorithm, iter, subset):
 
         import os
         import numpy as np
@@ -427,51 +461,41 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         from pytomography.algorithms import OSEM
         from pytomography.projectors.SPECT import SPECTSystemMatrix
         from pytomography.utils import print_collimator_parameters
+        from pytomography.likelihoods import PoissonLogLikelihood
         import matplotlib.pyplot as plt
         import pydicom
 
         from pytomography.io.SPECT import dicom, simind
     # Implement the code to allow the user to select a CT attenuation file
 
-      
+        print("Reconstructing volume...")
+        files_CT = [os.path.join(ct_path, file) for file in os.listdir(ct_path)]
+
+        self.object_meta, self.proj_meta = dicom.get_metadata(projection_data)
+        self.projections = dicom.get_projections(projection_data, photopeak)
+        scatter = dicom.get_scatter_from_TEW(projection_data, photopeak, lowerwindow, upperwindow)
+        att_transform = SPECTAttenuationTransform(filepath=files_CT)
+        att_transform.configure(self.object_meta, self.proj_meta)
+        collimator_name = collimator
+        #TODO dynamically select energy
+        energy_kev = 208
+        psf_meta = dicom.get_psfmeta_from_scanner_params(collimator_name, energy_kev)
+
+        psf_transform = SPECTPSFTransform(psf_meta)
+
+        system_matrix = SPECTSystemMatrix(
+        obj2obj_transforms = [att_transform,psf_transform],
+        proj2proj_transforms = [],
+        object_meta = self.object_meta,
+        proj_meta = self.proj_meta)
+
+        likelihood = PoissonLogLikelihood(system_matrix, self.projections, scatter)
+        reconstruction_algorithm = OSEM(likelihood)
         
-        if directory:
+        reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
 
-
-            print(directory)
-            path = r"C:\Users\okdzi\OneDrive\Desktop\projectiondata\dicom_tutorial\CT_files"
-            path_CT = path
-            files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
-
-            self.object_meta, self.proj_meta = dicom.get_metadata(directory)
-            self.projections = dicom.get_projections(directory, index_peak=3)
-            #TODO Revise index peak
-            scatter = dicom.get_scatter_from_TEW(directory, index_peak=3, index_lower=2, index_upper=4)
-            att_transform = SPECTAttenuationTransform(filepath=files_CT)
-            att_transform.configure(self.object_meta, self.proj_meta)
-            collimator_name = 'SY-ME'
-            energy_kev = 208
-            psf_meta = dicom.get_psfmeta_from_scanner_params(collimator_name, energy_kev)
-
-            psf_transform = SPECTPSFTransform(psf_meta)
-
-            system_matrix = SPECTSystemMatrix(
-            obj2obj_transforms = [att_transform,psf_transform],
-            proj2proj_transforms = [],
-            object_meta = self.object_meta,
-            proj_meta = self.proj_meta)
-
-            reconstruction_algorithm = OSEM(
-            projections = self.projections,
-            system_matrix = system_matrix,
-            scatter=scatter)
-            
-            reconstructed_object = reconstruction_algorithm(n_iters=1, n_subsets=10)
-
-            recon_name = reconstruction_algorithm.recon_name
-
-            save_path = r"C:\Users\okdzi\OneDrive\Desktop\projectiondata\newfolder"
-            dicom.save_dcm(save_path, reconstructed_object, directory, recon_name)
+        save_path = r"C:\Users\okdzi\OneDrive\Desktop\projectiondata\newfolder"
+        dicom.save_dcm(save_path, reconstructed_object, projection_data, "tryosem")
 
 
 
@@ -575,7 +599,7 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         
         try: 
             # Install pytomography
-            slicer.util.pip_install("pytomography")
+            slicer.util.pip_install("pytomography==2.0.1")
             print("Packages installed successfully!")
 
         except Exception as e:
