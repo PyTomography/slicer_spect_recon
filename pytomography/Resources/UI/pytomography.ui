@@ -681,14 +681,14 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_4">
           <item>
-           <widget class="QLabel" name="label_8">
+           <widget class="QLabel" name="OSEMIterations">
             <property name="text">
              <string>Iterations</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="osem_interations_spinbox"/>
+           <widget class="QSpinBox" name="osem_iterations_spinbox"/>
           </item>
          </layout>
         </item>
