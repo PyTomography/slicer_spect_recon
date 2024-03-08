@@ -354,13 +354,14 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     #         self.ui.applyButton.enabled = False
         
     def onReconstructButton(self):
-        self.logic.reconstruct( 
+        path= self.logic.reconstruct( 
             self.ui.PathLineEdit.currentPath, self.ui.spect_attenuation_directorybutton.directory, 
             self.ui.spect_collimator_combobox.currentText, self.ui.spect_scatter_combobox.currentText, 
             self.ui.photopeak_combobox.currentIndex, self.ui.spect_upperwindow_combobox.currentIndex, 
             self.ui.spect_lowerwindow_combobox.currentIndex, self.ui.algorithm_selector_combobox.currentText, 
             self.ui.osem_iterations_spinbox.value, self.ui.osem_subsets_spinbox.value
         )
+        self.logic.process(path)
 
     # def onApplyButton(self) -> None:
     #     """Run processing when user clicks "Apply" button."""
@@ -399,15 +400,6 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         """
         ScriptedLoadableModuleLogic.__init__(self)
         slicer.util.pip_install("pytomography==2.0.1")
-        import pytomography
-        from pytomography.io.SPECT import dicom, simind
-        from pytomography.projectors.SPECT import SPECTSystemMatrix
-        from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-        from pytomography.algorithms import OSEM
-        import numpy as np
-
-        
-        # a = torch.tensor([1])
         print("Im here")
 
     
@@ -415,6 +407,7 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
 
         import pydicom
         ds = pydicom.read_file(directory)
+
         energy_windows =[]
         lower_limits = []
         for energy_window_information in ds.EnergyWindowInformationSequence:
@@ -453,115 +446,56 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
             parameterNode.SetParameter("Subsets", "0")
 
     def reconstruct(self, projection_data, ct_path, collimator, scatter, photopeak, upperwindow, lowerwindow, algorithm, iter, subset):
-
-        import os
-        import numpy as np
-        from pytomography.io.SPECT import dicom
-        from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-        from pytomography.algorithms import OSEM
-        from pytomography.projectors.SPECT import SPECTSystemMatrix
+        import pytomography    
         from pytomography.utils import print_collimator_parameters
-        from pytomography.likelihoods import PoissonLogLikelihood
-        import matplotlib.pyplot as plt
-        import pydicom
-
-        from pytomography.io.SPECT import dicom, simind
-    # Implement the code to allow the user to select a CT attenuation file
 
         print("Reconstructing volume...")
-        files_CT = [os.path.join(ct_path, file) for file in os.listdir(ct_path)]
 
+        import os
+        files_CT = [os.path.join(ct_path, file) for file in os.listdir(ct_path)]
+        
+        from pytomography.io.SPECT import dicom
         self.object_meta, self.proj_meta = dicom.get_metadata(projection_data)
         self.projections = dicom.get_projections(projection_data, photopeak)
         scatter = dicom.get_scatter_from_TEW(projection_data, photopeak, lowerwindow, upperwindow)
+
+        from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
         att_transform = SPECTAttenuationTransform(filepath=files_CT)
         att_transform.configure(self.object_meta, self.proj_meta)
         collimator_name = collimator
         #TODO dynamically select energy
         energy_kev = 208
         psf_meta = dicom.get_psfmeta_from_scanner_params(collimator_name, energy_kev)
-
         psf_transform = SPECTPSFTransform(psf_meta)
-
+        
+        from pytomography.projectors.SPECT import SPECTSystemMatrix
         system_matrix = SPECTSystemMatrix(
         obj2obj_transforms = [att_transform,psf_transform],
         proj2proj_transforms = [],
         object_meta = self.object_meta,
         proj_meta = self.proj_meta)
 
+        from pytomography.likelihoods import PoissonLogLikelihood
         likelihood = PoissonLogLikelihood(system_matrix, self.projections, scatter)
-        reconstruction_algorithm = OSEM(likelihood)
+
+        from pytomography.algorithms import OSEM
+        if algorithm == "OSEM":
+            reconstruction_algorithm = OSEM(likelihood)
         
         reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
 
         save_path = r"C:\Users\okdzi\OneDrive\Desktop\projectiondata\newfolder"
         dicom.save_dcm(save_path, reconstructed_object, projection_data, "tryosem")
+        print("Reconstruction successful")
 
-
-
-
-    # def onPhotoPeakButtonClicked(self, directory):
-
-    #     import os
-    #     import numpy as np
-    #     from pytomography.io.SPECT import dicom
-    #     from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-    #     from pytomography.algorithms import OSEM
-    #     from pytomography.projectors.SPECT import SPECTSystemMatrix
-    #     from pytomography.utils import print_collimator_parameters
-    #     import matplotlib.pyplot as plt
-    #     import pydicom
-
-    #     from pytomography.io.SPECT import dicom, simind
-    # # Implement the code to allow the user to select a CT attenuation file
-        
-        
-    #     if directory:
-    #         path = r"C:\Users\OBED\Desktop\projection_data\dicom_tutorial\CT_files"
-    #         path_CT = path
-    #         files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
-
-    #         self.object_meta, self.proj_meta = dicom.get_metadata(directory)
-    #         self.projections = dicom.get_projections(directory, index_peak=3)
-    #         #TODO Revise index peak
-    #         scatter = dicom.get_scatter_from_TEW(directory, index_peak=3, index_lower=2, index_upper=4)
-    #         att_transform = SPECTAttenuationTransform(filepath=files_CT)
-    #         att_transform.configure(self.object_meta, self.proj_meta)
-    #         collimator_name = 'SY-ME'
-    #         energy_kev = 208
-    #         psf_meta = dicom.get_psfmeta_from_scanner_params(collimator_name, energy_kev)
-
-    #         psf_transform = SPECTPSFTransform(psf_meta)
-
-    #         system_matrix = SPECTSystemMatrix(
-    #         obj2obj_transforms = [att_transform,psf_transform],
-    #         proj2proj_transforms = [],
-    #         object_meta = self.object_meta,
-    #         proj_meta = self.proj_meta)
-
-    #         reconstruction_algorithm = OSEM(
-    #         projections = self.projections,
-    #         system_matrix = system_matrix,
-    #         scatter=scatter)
-            
-    #         reconstructed_object = reconstruction_algorithm(n_iters=1, n_subsets=10)
-
-    #         recon_name = reconstruction_algorithm.recon_name
-
-    #         save_path = r"C:\Users\OBED\Desktop\projection_data\dicom_tutorial\new_folder"
-    #         dicom.save_dcm(save_path, reconstructed_object, directory, recon_name)
+        return save_path
 
 
 
     # def getParameterNode(self):
     #     return pyTomographyParameterNode(super().getParameterNode())
 
-    def process(self,
-                inputVolume: vtkMRMLScalarVolumeNode,
-                outputVolume: vtkMRMLScalarVolumeNode,
-                imageThreshold: float,
-                invert: bool = False,
-                showResult: bool = True) -> None:
+    def process(self, reconstructed_volume_directory):
         """
         Run the processing algorithm.
         Can be used without GUI widget.
@@ -572,29 +506,157 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         :param showResult: show output volume in slice viewers
         """
 
-        if not inputVolume or not outputVolume:
-            raise ValueError("Input or output volume is invalid")
+        # Create a DICOM reader
+        reader = vtk.vtkDICOMImageReader()
+        # Set the directory containing the DICOM files
+        reader.SetDirectoryName(reconstructed_volume_directory)
+        # Update the reader
+        reader.Update()
 
-        import time
+        # Get the output of the reader, which is the VTK image data representing the reconstructed volume
+        reconstructed_volume_vtk = reader.GetOutput()
 
-        startTime = time.time()
-        logging.info("Processing started")
+        # Create a new Slicer volume node
+        reconstructed_volume_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
+        reconstructed_volume_node.SetName("ReconstructedVolume")  # Set a name for the volume node
 
-        # Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
-        cliParams = {
-            "InputVolume": inputVolume.GetID(),
-            "OutputVolume": outputVolume.GetID(),
-            "ThresholdValue": imageThreshold,
-            "ThresholdType": "Above" if invert else "Below",
-        }
-        cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
-        # We don't need the CLI module node anymore, remove it to not clutter the scene with it
-        slicer.mrmlScene.RemoveNode(cliNode)
+        # Set the VTK image data to the volume node
+        reconstructed_volume_node.SetAndObserveImageData(reconstructed_volume_vtk)
 
-        stopTime = time.time()
-        logging.info(f"Processing completed in {stopTime-startTime:.2f} seconds")
+        volumeNode = slicer.util.getNode("ReconstructedVolume")
+        displayNode = volumeNode.GetDisplayNode()
+        displayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
+        slicer.mrmlScene.AddNode(displayNode)
+        volumeNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+        displayNode.SetAutoWindowLevel(True)
+        # displayNode.SetWindow(50)
+        # displayNode.SetLevel(100)
 
-      
+        displayNode.SetAndObserveColorNodeID("vtkMRMLColorTableNodeGrey")
+
+        zoomLevel = 1.0 / max(volumeNode.GetImageData().GetDimensions())
+
+        layoutManager = slicer.app.layoutManager()
+        for sliceViewName in layoutManager.sliceViewNames():
+            layoutManager.sliceWidget(sliceViewName).mrmlSliceNode().RotateToVolumePlane(volumeNode)
+            layoutManager.sliceWidget(sliceViewName).sliceLogic().GetSliceCompositeNode().SetForegroundVolumeID(volumeNode.GetID())
+            layoutManager.sliceWidget(sliceViewName).sliceController().fitSliceToBackground()
+
+            layoutManager.sliceWidget(sliceViewName).sliceLogic().GetSliceCompositeNode().SetAttribute("scale factor", str(0.01))
+
+    
+            
+
+
+        # for color in ["Red", "Yellow", "Green"]:
+        #     slicer.app.layoutManager().sliceWidget(color).sliceLogic().GetSliceCompositeNode().SetForegroundVolumeID(volumeNode.GetID())
+        
+
+
+        # Get the volume node
+        # volumeNode = slicer.util.getNode("ReconstructedVolume")
+
+        # # Set the volume node as the background for slice viewer layers
+        # slicer.util.setSliceViewerLayers(background=volumeNode)
+
+        # volumeNode = slicer.util.getNode("ReconstructedVolume")
+        # applicationLogic = slicer.app.applicationLogic()
+        # selectionNode = applicationLogic.GetSelectionNode()
+        # selectionNode.SetSecondaryVolumeID(volumeNode.GetID())
+        # applicationLogic.PropagateForegroundVolumeSelection(0)
+
+
+
+
+        # n =  slicer.util.getNode("ReconstructedVolume")
+        # # displayNode = n.GetDisplayNode()
+        # # displayNode.SetAutoWindowLevel(True)
+
+        # if n:
+        # # Get the display node of the volume node
+        #     displayNode = n.GetDisplayNode()
+
+        #     if displayNode is None:
+        #         # If no display node exists, create one
+        #         displayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
+        #         slicer.mrmlScene.AddNode(displayNode)
+        #         n.SetAndObserveDisplayNodeID(displayNode.GetID())
+            
+        #     # Enable auto window/level
+        #     displayNode.SetAutoWindowLevel(True)
+
+        # else:
+        #     print("Volume node not found")
+
+        # for color in ["Red", "Yellow", "Green"]:
+        #     slicer.app.layoutManager().sliceWidget(color).sliceLogic().GetSliceCompositeNode().SetForegroundVolumeID(n.GetID())
+
+
+        # # Get the volume node
+        # volumeNode = slicer.util.getNode("ReconstructedVolume")
+        # if volumeNode:
+        #     # Check if the volume node has an associated display node
+        #     displayNode = volumeNode.GetDisplayNode()
+        #     if displayNode is None:
+        #         # If no display node exists, create one
+        #         displayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
+        #         slicer.mrmlScene.AddNode(displayNode)
+        #         volumeNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+        #     else:
+        #         print("Volume node already has a display node")
+
+        #     # Enable auto window/level
+        #     if displayNode:
+        #         displayNode.SetAutoWindowLevel(True)
+        #         print("Auto window/level enabled")
+        #     else:
+        #         print("Failed to set auto window/level: Display node is None")
+
+        #     # Set the color node reference to a built-in color table
+        #     displayNode.SetDefaultColorMap()
+        #     print("Color map set to default")
+
+        #     for color in ["Red", "Yellow", "Green"]:
+        #         sliceWidget = slicer.app.layoutManager().sliceWidget(color)
+        #         if sliceWidget:
+        #             sliceLogic = sliceWidget.sliceLogic()
+        #             compositeNode = sliceLogic.GetSliceCompositeNode()
+        #             if compositeNode:
+        #                 compositeNode.SetForegroundVolumeID(volumeNode.GetID())
+        #                 print(f"Foreground volume set for {color} slice view")
+        #             else:
+        #                 print(f"Failed to set foreground volume for {color} slice view: Composite node is None")
+        #         else:
+        #             print(f"Failed to get slice widget for {color} slice view")
+        # else:
+        #     print("Volume node not found")
+
+
+
+
+        # if not inputVolume or not outputVolume:
+        #     raise ValueError("Input or output volume is invalid")
+
+        # import time
+
+        # startTime = time.time()
+        # logging.info("Processing started")
+
+        # # Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
+        # cliParams = {
+        #     "InputVolume": inputVolume.GetID(),
+        #     "OutputVolume": outputVolume.GetID(),
+        #     "ThresholdValue": imageThreshold,
+        #     "ThresholdType": "Above" if invert else "Below",
+        # }
+        # cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
+        # # We don't need the CLI module node anymore, remove it to not clutter the scene with it
+        # slicer.mrmlScene.RemoveNode(cliNode)
+
+        # stopTime = time.time()
+        # logging.info(f"Processing completed in {stopTime-startTime:.2f} seconds")
+
+
     def install_required_packages(self):
         
         try: 
