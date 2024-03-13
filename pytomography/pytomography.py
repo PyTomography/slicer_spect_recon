@@ -506,136 +506,41 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         :param showResult: show output volume in slice viewers
         """
 
-        # Create a DICOM reader
-        reader = vtk.vtkDICOMImageReader()
-        # Set the directory containing the DICOM files
-        reader.SetDirectoryName(reconstructed_volume_directory)
-        # Update the reader
-        reader.Update()
+        # Import necessary modules
+        from DICOMLib import DICOMUtils
 
-        # Get the output of the reader, which is the VTK image data representing the reconstructed volume
-        reconstructed_volume_vtk = reader.GetOutput()
+        # Import the DICOM files into the Slicer database
+        DICOMUtils.importDicom(reconstructed_volume_directory)
 
-        # Create a new Slicer volume node
-        reconstructed_volume_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
-        reconstructed_volume_node.SetName("ReconstructedVolume")  # Set a name for the volume node
+        # Get the list of patient IDs in the database (this should include the newly imported patient)
+        patientUIDs = slicer.dicomDatabase.patients()
 
-        # Set the VTK image data to the volume node
-        reconstructed_volume_node.SetAndObserveImageData(reconstructed_volume_vtk)
-
-        volumeNode = slicer.util.getNode("ReconstructedVolume")
-        displayNode = volumeNode.GetDisplayNode()
-        displayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
-        slicer.mrmlScene.AddNode(displayNode)
-        volumeNode.SetAndObserveDisplayNodeID(displayNode.GetID())
-        displayNode.SetAutoWindowLevel(True)
-        # displayNode.SetWindow(50)
-        # displayNode.SetLevel(100)
-
-        displayNode.SetAndObserveColorNodeID("vtkMRMLColorTableNodeGrey")
-
-        zoomLevel = 1.0 / max(volumeNode.GetImageData().GetDimensions())
-
-        layoutManager = slicer.app.layoutManager()
-        for sliceViewName in layoutManager.sliceViewNames():
-            layoutManager.sliceWidget(sliceViewName).mrmlSliceNode().RotateToVolumePlane(volumeNode)
-            layoutManager.sliceWidget(sliceViewName).sliceLogic().GetSliceCompositeNode().SetForegroundVolumeID(volumeNode.GetID())
-            layoutManager.sliceWidget(sliceViewName).sliceController().fitSliceToBackground()
-
-            layoutManager.sliceWidget(sliceViewName).sliceLogic().GetSliceCompositeNode().SetAttribute("scale factor", str(0.01))
-
-    
+        # Load all data for the first (and presumably only) patient
+        for patientUID in patientUIDs:
+            loadedPatientData = DICOMUtils.loadPatientByUID(patientUID)
             
-
-
-        # for color in ["Red", "Yellow", "Green"]:
-        #     slicer.app.layoutManager().sliceWidget(color).sliceLogic().GetSliceCompositeNode().SetForegroundVolumeID(volumeNode.GetID())
-        
-
-
-        # Get the volume node
-        # volumeNode = slicer.util.getNode("ReconstructedVolume")
-
-        # # Set the volume node as the background for slice viewer layers
-        # slicer.util.setSliceViewerLayers(background=volumeNode)
-
-        # volumeNode = slicer.util.getNode("ReconstructedVolume")
-        # applicationLogic = slicer.app.applicationLogic()
-        # selectionNode = applicationLogic.GetSelectionNode()
-        # selectionNode.SetSecondaryVolumeID(volumeNode.GetID())
-        # applicationLogic.PropagateForegroundVolumeSelection(0)
-
-
-
-
-        # n =  slicer.util.getNode("ReconstructedVolume")
-        # # displayNode = n.GetDisplayNode()
-        # # displayNode.SetAutoWindowLevel(True)
-
-        # if n:
-        # # Get the display node of the volume node
-        #     displayNode = n.GetDisplayNode()
-
-        #     if displayNode is None:
-        #         # If no display node exists, create one
-        #         displayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
-        #         slicer.mrmlScene.AddNode(displayNode)
-        #         n.SetAndObserveDisplayNodeID(displayNode.GetID())
+        # Assuming the first loaded volume is the one we want to display
+        volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
+        if volumeNodes:
+            # Set the first volume as the active volume in the slice views
+            volumeNode = volumeNodes[0]
+            slicer.util.setSliceViewerLayers(background=volumeNode)
             
-        #     # Enable auto window/level
-        #     displayNode.SetAutoWindowLevel(True)
+            # Get the layout manager and adjust the views
+            layoutManager = slicer.app.layoutManager()
+            for sliceViewName in layoutManager.sliceViewNames():
+                # Rotate the slice view to align with the volume plane
+                sliceWidget = layoutManager.sliceWidget(sliceViewName)
+                sliceWidget.mrmlSliceNode().RotateToVolumePlane(volumeNode)
+                
+                # Fit the slice view to the background volume
+                sliceWidget.sliceController().fitSliceToBackground()
+            
+            # Fit all slices to the volume
+            slicer.app.applicationLogic().FitSliceToAll()
+        else:
+            print("No volume nodes found. Please check the DICOM data.")
 
-        # else:
-        #     print("Volume node not found")
-
-        # for color in ["Red", "Yellow", "Green"]:
-        #     slicer.app.layoutManager().sliceWidget(color).sliceLogic().GetSliceCompositeNode().SetForegroundVolumeID(n.GetID())
-
-
-        # # Get the volume node
-        # volumeNode = slicer.util.getNode("ReconstructedVolume")
-        # if volumeNode:
-        #     # Check if the volume node has an associated display node
-        #     displayNode = volumeNode.GetDisplayNode()
-        #     if displayNode is None:
-        #         # If no display node exists, create one
-        #         displayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
-        #         slicer.mrmlScene.AddNode(displayNode)
-        #         volumeNode.SetAndObserveDisplayNodeID(displayNode.GetID())
-        #     else:
-        #         print("Volume node already has a display node")
-
-        #     # Enable auto window/level
-        #     if displayNode:
-        #         displayNode.SetAutoWindowLevel(True)
-        #         print("Auto window/level enabled")
-        #     else:
-        #         print("Failed to set auto window/level: Display node is None")
-
-        #     # Set the color node reference to a built-in color table
-        #     displayNode.SetDefaultColorMap()
-        #     print("Color map set to default")
-
-        #     for color in ["Red", "Yellow", "Green"]:
-        #         sliceWidget = slicer.app.layoutManager().sliceWidget(color)
-        #         if sliceWidget:
-        #             sliceLogic = sliceWidget.sliceLogic()
-        #             compositeNode = sliceLogic.GetSliceCompositeNode()
-        #             if compositeNode:
-        #                 compositeNode.SetForegroundVolumeID(volumeNode.GetID())
-        #                 print(f"Foreground volume set for {color} slice view")
-        #             else:
-        #                 print(f"Failed to set foreground volume for {color} slice view: Composite node is None")
-        #         else:
-        #             print(f"Failed to get slice widget for {color} slice view")
-        # else:
-        #     print("Volume node not found")
-
-
-
-
-        # if not inputVolume or not outputVolume:
-        #     raise ValueError("Input or output volume is invalid")
 
         # import time
 
