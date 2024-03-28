@@ -17,6 +17,7 @@ from slicer.parameterNodeWrapper import (
 from slicer import vtkMRMLScalarVolumeNode
 
 
+
 #
 # pytomography
 #
@@ -46,82 +47,82 @@ This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc
 and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
 """)
 
-        # Additional initialization step after application startup is complete
-        slicer.app.connect("startupCompleted()", registerSampleData)
+#         # Additional initialization step after application startup is complete
+#         slicer.app.connect("startupCompleted()", registerSampleData)
 
 
-#
-# Register sample data sets in Sample Data module
-#
+# #
+# # Register sample data sets in Sample Data module
+# #
 
 
-def registerSampleData():
-    """Add data sets to Sample Data module."""
-    # It is always recommended to provide sample data for users to make it easy to try the module,
-    # but if no sample data is available then this method (and associated startupCompeted signal connection) can be removed.
+# # def registerSampleData():
+# #     """Add data sets to Sample Data module."""
+# #     # It is always recommended to provide sample data for users to make it easy to try the module,
+# #     # but if no sample data is available then this method (and associated startupCompeted signal connection) can be removed.
 
-    import SampleData
+# #     import SampleData
 
-    iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
+# #     iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
 
-    # To ensure that the source code repository remains small (can be downloaded and installed quickly)
-    # it is recommended to store data sets that are larger than a few MB in a Github release.
+# #     # To ensure that the source code repository remains small (can be downloaded and installed quickly)
+# #     # it is recommended to store data sets that are larger than a few MB in a Github release.
 
-    # pytomography1
-    SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        # Category and sample name displayed in Sample Data module
-        category="pytomography",
-        sampleName="pytomography1",
-        # Thumbnail should have size of approximately 260x280 pixels and stored in Resources/Icons folder.
-        # It can be created by Screen Capture module, "Capture all views" option enabled, "Number of images" set to "Single".
-        thumbnailFileName=os.path.join(iconsPath, "pytomography1.png"),
-        # Download URL and target file name
-        uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-        fileNames="pytomography1.nrrd",
-        # Checksum to ensure file integrity. Can be computed by this command:
-        #  import hashlib; print(hashlib.sha256(open(filename, "rb").read()).hexdigest())
-        checksums="SHA256:998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-        # This node name will be used when the data set is loaded
-        nodeNames="pytomography1",
-    )
+# #     # pytomography1
+# #     SampleData.SampleDataLogic.registerCustomSampleDataSource(
+# #         # Category and sample name displayed in Sample Data module
+# #         category="pytomography",
+# #         sampleName="pytomography1",
+# #         # Thumbnail should have size of approximately 260x280 pixels and stored in Resources/Icons folder.
+# #         # It can be created by Screen Capture module, "Capture all views" option enabled, "Number of images" set to "Single".
+# #         thumbnailFileName=os.path.join(iconsPath, "pytomography1.png"),
+# #         # Download URL and target file name
+# #         uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
+# #         fileNames="pytomography1.nrrd",
+# #         # Checksum to ensure file integrity. Can be computed by this command:
+# #         #  import hashlib; print(hashlib.sha256(open(filename, "rb").read()).hexdigest())
+# #         checksums="SHA256:998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
+# #         # This node name will be used when the data set is loaded
+# #         nodeNames="pytomography1",
+# #     )
 
-    # pytomography2
-    SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        # Category and sample name displayed in Sample Data module
-        category="pytomography",
-        sampleName="pytomography2",
-        thumbnailFileName=os.path.join(iconsPath, "pytomography2.png"),
-        # Download URL and target file name
-        uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-        fileNames="pytomography2.nrrd",
-        checksums="SHA256:1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-        # This node name will be used when the data set is loaded
-        nodeNames="pytomography2",
-    )
-
-
-#
-# pytomographyParameterNode
-#
+# #     # pytomography2
+# #     SampleData.SampleDataLogic.registerCustomSampleDataSource(
+# #         # Category and sample name displayed in Sample Data module
+# #         category="pytomography",
+# #         sampleName="pytomography2",
+# #         thumbnailFileName=os.path.join(iconsPath, "pytomography2.png"),
+# #         # Download URL and target file name
+# #         uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
+# #         fileNames="pytomography2.nrrd",
+# #         checksums="SHA256:1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
+# #         # This node name will be used when the data set is loaded
+# #         nodeNames="pytomography2",
+# #     )
 
 
-@parameterNodeWrapper
-class pyTomographyParameterNode:
-    """
-    The parameters needed by module.
+# # #
+# # # pytomographyParameterNode
+# # #
 
-    inputVolume - The volume to threshold.
-    imageThreshold - The value at which to threshold the input volume.
-    invertThreshold - If true, will invert the threshold.
-    thresholdedVolume - The output volume that will contain the thresholded volume.
-    invertedVolume - The output volume that will contain the inverted thresholded volume.
-    """
 
-    inputVolume: vtkMRMLScalarVolumeNode
-    imageThreshold: Annotated[float, WithinRange(-100, 500)] = 100
-    invertThreshold: bool = False
-    thresholdedVolume: vtkMRMLScalarVolumeNode
-    invertedVolume: vtkMRMLScalarVolumeNode
+# # @parameterNodeWrapper
+# # class pyTomographyParameterNode:
+# #     """
+# #     The parameters needed by module.
+
+# #     inputVolume - The volume to threshold.
+# #     imageThreshold - The value at which to threshold the input volume.
+# #     invertThreshold - If true, will invert the threshold.
+# #     thresholdedVolume - The output volume that will contain the thresholded volume.
+# #     invertedVolume - The output volume that will contain the inverted thresholded volume.
+# #     """
+
+# #     inputVolume: vtkMRMLScalarVolumeNode
+# #     imageThreshold: Annotated[float, WithinRange(-100, 500)] = 100
+# #     invertThreshold: bool = False
+# #     thresholdedVolume: vtkMRMLScalarVolumeNode
+# #     invertedVolume: vtkMRMLScalarVolumeNode
 
 
 #
@@ -158,7 +159,9 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Set scene in MRML widgets. Make sure that in Qt designer the top-level qMRMLWidget's
         # "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
         # "setMRMLScene(vtkMRMLScene*)" slot.
+        # self.ui.inputdata.setMRMLScene(slicer.mrmlScene)
         uiWidget.setMRMLScene(slicer.mrmlScene)
+        self.ui.inputdata.nodeTypes = ["vtkMRMLScalarVolumeNode"]
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -173,8 +176,9 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
 
-        self.ui.PathLineEdit.connect('currentPathChanged(QString)', self.updateParameterNodeFromGUI)
-        self.ui.spect_attenuation_directorybutton.connect('directoryChanged(QString)', self.updateParameterNodeFromGUI)
+        self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        
+        # self.ui.spect_attenuation_directorybutton.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.spect_collimator_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
@@ -185,7 +189,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
 
         # Buttons
-        self.ui.PathLineEdit.connect('currentPathChanged(QString)', self.getProjectionData)
+        # self.ui.inputdata.connect('currentPathChanged(QString)', self.getProjectionData)
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
 
         # Make sure parameter node is initialized (needed for module reload)
@@ -219,37 +223,23 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.parent.isEntered:
             self.initializeParameterNode()
 
-    def initializeParameterNode(self) -> None:
-        """Ensure parameter node exists and observed."""
+    def initializeParameterNode(self):
+        """
+        Ensure parameter node exists and observed.
+        """
         # Parameter node stores all user choices in parameter values, node selections, etc.
         # so that when the scene is saved and reloaded, these settings are restored.
 
         self.setParameterNode(self.logic.getParameterNode())
 
         # Select default input nodes if nothing is selected yet to save a few clicks for the user
+        if not self._parameterNode.GetNodeReference("InputVolume"):
+            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
         
-        # if not self._parameterNode.inputVolume:
-        #     firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
-        #     if firstVolumeNode:
-        #         self._parameterNode.inputVolume = firstVolumeNode
-
-    # def setParameterNode(self, inputParameterNode: Optional[pytomographyParameterNode]) -> None:
-    #     """
-    #     Set and observe parameter node.
-    #     Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
-    #     """
-
-    #     if self._parameterNode:
-    #         self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
-    #         self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
-    #     self._parameterNode = inputParameterNode
-    #     if self._parameterNode:
-    #         # Note: in the .ui file, a Qt dynamic property called "SlicerParameterName" is set on each
-    #         # ui element that needs connection.
-    #         self._parameterNodeGuiTag = self._parameterNode.connectGui(self.ui)
-    #         self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
-    #         self._checkCanApply()
+            if firstVolumeNode:
+                self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
                 
+
     def setParameterNode(self, inputParameterNode):
         """
         Set and observe parameter node.
@@ -264,12 +254,16 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # those are reflected immediately in the GUI.
         if self._parameterNode is not None:
             self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+        
         self._parameterNode = inputParameterNode
         if self._parameterNode is not None:
             self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+       
+            
 
         # Initial GUI update
         self.updateGUIFromParameterNode()
+                
 
     def updateGUIFromParameterNode(self, caller=None, event=None):
         """
@@ -286,9 +280,9 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Update node selectors and sliders
 
 
-        self.ui.PathLineEdit.setCurrentPath(self._parameterNode.GetParameter("Path"))
+        self.ui.inputdata.setCurrentNodeID(self._parameterNode.GetNodeReference("InputVolume"))
         # self.ui.spect_attenuation_directorybutton.setDirectoryName(self._parameterNode.GetParameter("AttenuationDirectory"))
-        self.ui.spect_attenuation_directorybutton.directory = self._parameterNode.GetParameter("AttenuationDirectory")
+        # self.ui.spect_attenuation_directorybutton.directory = self._parameterNode.GetParameter("AttenuationDirectory")
         self.ui.spect_collimator_combobox.setCurrentText(self._parameterNode.GetParameter("Collimator"))
         self.ui.spect_scatter_combobox.setCurrentText(self._parameterNode.GetParameter("Scatter"))
 
@@ -308,6 +302,9 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.osem_iterations_spinbox.setValue(int(self._parameterNode.GetParameter('Iterations')))
         self.ui.osem_subsets_spinbox.setValue(int(self._parameterNode.GetParameter('Subsets')))
 
+        # inputVolume = self._parameterNode.GetNodeReference("InputVolume")
+        # print(inputVolume)
+
         # All the GUI updates are done
         self._updatingGUIFromParameterNode = False
 
@@ -322,8 +319,8 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
 
-        self._parameterNode.SetParameter("Path", self.ui.PathLineEdit.currentPath)
-        self._parameterNode.SetParameter("AttenuationDirectory", self.ui.spect_attenuation_directorybutton.directory)
+        self._parameterNode.SetNodeReferenceID("InputVolume", self.ui.inputdata.currentNodeID)
+        # self._parameterNode.SetParameter("AttenuationDirectory", self.ui.spect_attenuation_directorybutton.directory)
         self._parameterNode.SetParameter("Collimator", self.ui.spect_collimator_combobox.currentText)
         self._parameterNode.SetParameter("Scatter", self.ui.spect_scatter_combobox.currentText)
         self._parameterNode.SetParameter("Photopeak", str(self.ui.photopeak_combobox.currentText))
@@ -334,7 +331,6 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.SetParameter("Subsets", str(self.ui.osem_subsets_spinbox.value))
 
         self._parameterNode.EndModify(wasModified)
-
 
     def getProjectionData(self, directory):
         energy_window = self.logic.getEnergyWindow(directory)
@@ -355,7 +351,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def onReconstructButton(self):
         path= self.logic.reconstruct( 
-            self.ui.PathLineEdit.currentPath, self.ui.spect_attenuation_directorybutton.directory, 
+            # self.ui.inputdata.currentPath, self.ui.spect_attenuation_directorybutton.directory, 
             self.ui.spect_collimator_combobox.currentText, self.ui.spect_scatter_combobox.currentText, 
             self.ui.photopeak_combobox.currentIndex, self.ui.spect_upperwindow_combobox.currentIndex, 
             self.ui.spect_lowerwindow_combobox.currentIndex, self.ui.algorithm_selector_combobox.currentText, 
@@ -490,11 +486,6 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
 
         return save_path
 
-
-
-    # def getParameterNode(self):
-    #     return pyTomographyParameterNode(super().getParameterNode())
-
     def process(self, reconstructed_volume_directory):
         """
         Run the processing algorithm.
@@ -506,40 +497,38 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         :param showResult: show output volume in slice viewers
         """
 
-        # Import necessary modules
         from DICOMLib import DICOMUtils
 
-        # Import the DICOM files into the Slicer database
         DICOMUtils.importDicom(reconstructed_volume_directory)
-
-        # Get the list of patient IDs in the database (this should include the newly imported patient)
         patientUIDs = slicer.dicomDatabase.patients()
+        loadedVolumeNode = None
 
-        # Load all data for the first (and presumably only) patient
         for patientUID in patientUIDs:
             loadedPatientData = DICOMUtils.loadPatientByUID(patientUID)
             
-        # Assuming the first loaded volume is the one we want to display
-        volumeNodes = slicer.util.getNodesByClass('vtkMRMLScalarVolumeNode')
-        if volumeNodes:
-            # Set the first volume as the active volume in the slice views
-            volumeNode = volumeNodes[0]
-            slicer.util.setSliceViewerLayers(background=volumeNode)
-            
-            # Get the layout manager and adjust the views
+            # Find the first loaded volume node
+            for node in loadedPatientData:
+                if isinstance(node, slicer.vtkMRMLScalarVolumeNode):
+                    loadedVolumeNode = node
+                    break
+            if loadedVolumeNode:
+                break
+
+        if loadedVolumeNode:
+            slicer.util.setSliceViewerLayers(background=loadedVolumeNode)
             layoutManager = slicer.app.layoutManager()
+
             for sliceViewName in layoutManager.sliceViewNames():
                 # Rotate the slice view to align with the volume plane
                 sliceWidget = layoutManager.sliceWidget(sliceViewName)
-                sliceWidget.mrmlSliceNode().RotateToVolumePlane(volumeNode)
-                
-                # Fit the slice view to the background volume
+                sliceWidget.mrmlSliceNode().RotateToVolumePlane(loadedVolumeNode)
                 sliceWidget.sliceController().fitSliceToBackground()
             
             # Fit all slices to the volume
             slicer.app.applicationLogic().FitSliceToAll()
         else:
-            print("No volume nodes found. Please check the DICOM data.")
+            print("No volume nodes found in the loaded data. Please check the DICOM data.")
+
 
 
         # import time
