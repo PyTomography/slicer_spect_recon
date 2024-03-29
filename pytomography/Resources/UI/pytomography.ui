@@ -19,105 +19,7 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="0">
-       <widget class="ctkCollapsibleButton" name="reconstructionalgorithm_collapsiblebutton">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Reconstruction Algorithms</string>
-        </property>
-        <property name="collapsed">
-         <bool>false</bool>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_7">
-         <item row="0" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_25">
-           <item>
-            <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>Reconstruction Algorithm</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="algorithm_selector_combobox">
-             <item>
-              <property name="text">
-               <string>OSEM</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>OSEMOSL</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>BSREM</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>KEM</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item row="1" column="0">
-          <widget class="QGroupBox" name="osem_groupbox">
-           <property name="title">
-            <string>OSEM</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_4">
-            <item row="0" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_5">
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_4">
-                <item>
-                 <widget class="QLabel" name="OSEMIterations">
-                  <property name="text">
-                   <string>Iterations</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QSpinBox" name="osem_iterations_spinbox"/>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_2">
-                <item>
-                 <widget class="QLabel" name="label_9">
-                  <property name="text">
-                   <string>Subsets</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QSpinBox" name="osem_subsets_spinbox"/>
-                </item>
-               </layout>
-              </item>
-             </layout>
-            </item>
-            <item row="1" column="0">
-             <widget class="QPushButton" name="osem_reconstruct_pushbutton">
-              <property name="text">
-               <string>Reconstruct</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
+     <layout class="QGridLayout" name="gridLayout_2">
       <item row="0" column="0">
        <widget class="ctkCollapsibleButton" name="systemmodel_collapsebutton">
         <property name="enabled">
@@ -755,10 +657,148 @@
         </layout>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="ctkCollapsibleButton" name="reconstructionalgorithm_collapsiblebutton">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>Reconstruction Algorithms</string>
+        </property>
+        <property name="collapsed">
+         <bool>false</bool>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="0" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_25">
+           <item>
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>Reconstruction Algorithm</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="algorithm_selector_combobox">
+             <item>
+              <property name="text">
+               <string>OSEM</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>OSEMOSL</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>BSREM</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>KEM</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="1" column="0">
+          <widget class="QGroupBox" name="osem_groupbox">
+           <property name="title">
+            <string>OSEM</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="0" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <item>
+                 <widget class="QLabel" name="OSEMIterations">
+                  <property name="text">
+                   <string>Iterations</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="osem_iterations_spinbox"/>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <item>
+                 <widget class="QLabel" name="label_9">
+                  <property name="text">
+                   <string>Subsets</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="osem_subsets_spinbox"/>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="ctkCollapsibleButton" name="CollapsibleButton">
+        <property name="text">
+         <string>Output</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Reconstructed Volume</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="nodeTypes">
+                <stringlist notr="true"/>
+               </property>
+               <property name="hideChildNodeTypes">
+                <stringlist notr="true"/>
+               </property>
+               <property name="interactionNodeSingletonTag">
+                <string notr="true"/>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="osem_reconstruct_pushbutton">
+             <property name="text">
+              <string>Reconstruct</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
-   <item row="2" column="0">
+   <item row="1" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
