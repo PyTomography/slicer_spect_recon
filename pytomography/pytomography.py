@@ -143,6 +143,9 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode = None
         # self._parameterNodeGuiTag = None
         self._updatingGUIFromParameterNode = False
+        self._inputdatapath=None
+        self._attdatapath=None
+        self.last_text = {}
 
     def setup(self):
         """
@@ -159,9 +162,10 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Set scene in MRML widgets. Make sure that in Qt designer the top-level qMRMLWidget's
         # "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
         # "setMRMLScene(vtkMRMLScene*)" slot.
-        # self.ui.inputdata.setMRMLScene(slicer.mrmlScene)
+
         uiWidget.setMRMLScene(slicer.mrmlScene)
         self.ui.inputdata.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+        self.ui.attenuationdata.nodeTypes = ["vtkMRMLScalarVolumeNode"]
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -175,10 +179,10 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
-
+      
         self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         
-        # self.ui.spect_attenuation_directorybutton.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.spect_collimator_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
@@ -189,7 +193,8 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
 
         # Buttons
-        # self.ui.inputdata.connect('currentPathChanged(QString)', self.getProjectionData)
+        self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.getProjectionData)
+        self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.getAttdata)
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
 
         # Make sure parameter node is initialized (needed for module reload)
@@ -233,11 +238,12 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.setParameterNode(self.logic.getParameterNode())
 
         # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if not self._parameterNode.GetNodeReference("InputVolume"):
-            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+        # if not self._parameterNode.GetNodeReference("InputVolume"):
+        #     firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
         
-            if firstVolumeNode:
-                self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
+        #     if firstVolumeNode:
+        #         self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
+     
                 
 
     def setParameterNode(self, inputParameterNode):
@@ -252,7 +258,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Unobserve previously selected parameter node and add an observer to the newly selected.
         # Changes of parameter node are observed so that whenever parameters are changed by a script or any other module
         # those are reflected immediately in the GUI.
-        if self._parameterNode is not None:
+        if self._parameterNode is not None and self.hasObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode):
             self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
         
         self._parameterNode = inputParameterNode
@@ -277,30 +283,34 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
 
-        # Update node selectors and sliders
-
-
-        self.ui.inputdata.setCurrentNodeID(self._parameterNode.GetNodeReference("InputVolume"))
+        # self.ui.inputdata.setCurrentNodeID(self._parameterNode.GetNodeReference("InputVolume"))
         # self.ui.spect_attenuation_directorybutton.setDirectoryName(self._parameterNode.GetParameter("AttenuationDirectory"))
         # self.ui.spect_attenuation_directorybutton.directory = self._parameterNode.GetParameter("AttenuationDirectory")
-        self.ui.spect_collimator_combobox.setCurrentText(self._parameterNode.GetParameter("Collimator"))
-        self.ui.spect_scatter_combobox.setCurrentText(self._parameterNode.GetParameter("Scatter"))
+        # self.ui.spect_collimator_combobox.setCurrentText(self._parameterNode.GetParameter("Collimator"))
+        # self.ui.spect_scatter_combobox.setCurrentText(self._parameterNode.GetParameter("Scatter"))
+        # print(self.ui.spect_scatter_combobox.currentText)
 
-        photopeak_value = self._parameterNode.GetParameter("Photopeak")
-        photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
-        self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
+        last_text = self.last_text.get(self.ui.photopeak_combobox.objectName, None)
 
-        upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
-        upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
-        self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
+        if self.ui.photopeak_combobox.currentText != last_text:
+            photopeak_value = self._parameterNode.GetParameter("Photopeak")
+            photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
+            self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
+            print(self.ui.photopeak_combobox.currentText)
+            self.last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
+        
+        # if self.ui.spect_upperwindow_combobox.currentTextChanged:
+        #     upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
+        #     upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
+        #     self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
+        # if self.ui.spect_lowerwindow_combobox.currentTextChanged:
+        #     lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
+        #     lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
+        #     self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
 
-        lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
-        lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
-        self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
-
-        self.ui.algorithm_selector_combobox.setCurrentText(self._parameterNode.GetParameter("Algorithm"))
-        self.ui.osem_iterations_spinbox.setValue(int(self._parameterNode.GetParameter('Iterations')))
-        self.ui.osem_subsets_spinbox.setValue(int(self._parameterNode.GetParameter('Subsets')))
+        # self.ui.algorithm_selector_combobox.setCurrentText(self._parameterNode.GetParameter("Algorithm"))
+        # self.ui.osem_iterations_spinbox.setValue(int(self._parameterNode.GetParameter('Iterations')))
+        # self.ui.osem_subsets_spinbox.setValue(int(self._parameterNode.GetParameter('Subsets')))
 
         # inputVolume = self._parameterNode.GetNodeReference("InputVolume")
         # print(inputVolume)
@@ -320,7 +330,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
 
         self._parameterNode.SetNodeReferenceID("InputVolume", self.ui.inputdata.currentNodeID)
-        # self._parameterNode.SetParameter("AttenuationDirectory", self.ui.spect_attenuation_directorybutton.directory)
+        self._parameterNode.SetNodeReferenceID("AttenuationData", self.ui.attenuationdata.currentNodeID)
         self._parameterNode.SetParameter("Collimator", self.ui.spect_collimator_combobox.currentText)
         self._parameterNode.SetParameter("Scatter", self.ui.spect_scatter_combobox.currentText)
         self._parameterNode.SetParameter("Photopeak", str(self.ui.photopeak_combobox.currentText))
@@ -329,16 +339,40 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.SetParameter("Algorithm", self.ui.algorithm_selector_combobox.currentText)
         self._parameterNode.SetParameter("Iterations", str(self.ui.osem_iterations_spinbox.value))
         self._parameterNode.SetParameter("Subsets", str(self.ui.osem_subsets_spinbox.value))
+        # print(self.ui.inputdata.currentNodeID)
 
         self._parameterNode.EndModify(wasModified)
 
-    def getProjectionData(self, directory):
-        energy_window = self.logic.getEnergyWindow(directory)
+    def getProjectionData(self,x):
+        # print(x.GetID())
+
+        # node = slicer.util.getNode("InputVolume")
+        self._inputdatapath = self.pathFromNode(x)#self._parameterNode.InputVolume)
+        print("DICOM path=%s" % self._inputdatapath)
+        energy_window = self.logic.getEnergyWindow(self._inputdatapath)
         self.ui.spect_upperwindow_combobox.addItems(energy_window)
         # self.ui.spect_scatter_combobox.currentTextChanged.connect(self.logic.energyWindowType)
         self.ui.spect_lowerwindow_combobox.addItems(energy_window)
         self.ui.photopeak_combobox.addItems(energy_window)
 
+    def getAttdata(self,x):
+        self._attdatapath = os.path.dirname(self.pathFromNode(x))
+
+
+    def pathFromNode(self, node):
+        #TODO: Review this function to handle the case where the data was dragged and dropped
+        # if node is not None:
+        #     storageNode = node.GetStorageNode()
+        #     print(storageNode)
+        #     if storageNode is not None: # loaded via drag-drop
+        #         filepath = storageNode.GetFullNameFromFileName()
+        #         print(filepath)
+        # else: # Loaded via DICOM browser
+        instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
+        filepath = slicer.dicomDatabase.fileForInstance(instanceUIDs[0])
+        return filepath
+
+        # Example:
 
 
     # def _checkCanApply(self, caller=None, event=None) -> None:
@@ -351,11 +385,11 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def onReconstructButton(self):
         path= self.logic.reconstruct( 
-            # self.ui.inputdata.currentPath, self.ui.spect_attenuation_directorybutton.directory, 
-            self.ui.spect_collimator_combobox.currentText, self.ui.spect_scatter_combobox.currentText, 
-            self.ui.photopeak_combobox.currentIndex, self.ui.spect_upperwindow_combobox.currentIndex, 
-            self.ui.spect_lowerwindow_combobox.currentIndex, self.ui.algorithm_selector_combobox.currentText, 
-            self.ui.osem_iterations_spinbox.value, self.ui.osem_subsets_spinbox.value
+            self._inputdatapath, self._attdatapath, self.ui.spect_collimator_combobox.currentText, 
+            self.ui.spect_scatter_combobox.currentText, self.ui.photopeak_combobox.currentIndex, 
+            self.ui.spect_upperwindow_combobox.currentIndex, self.ui.spect_lowerwindow_combobox.currentIndex,
+            self.ui.algorithm_selector_combobox.currentText, self.ui.osem_iterations_spinbox.value, 
+            self.ui.osem_subsets_spinbox.value
         )
         self.logic.process(path)
 
@@ -528,6 +562,13 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
             slicer.app.applicationLogic().FitSliceToAll()
         else:
             print("No volume nodes found in the loaded data. Please check the DICOM data.")
+
+
+        # shNode = slicer.vtkMRMLSubjectHierarchyNode.GetSubjectHierarchyNode(slicer.mrmlScene)
+        # inputVolumeShItem = shNode.GetItemByDataNode(inputVolume)
+        # studyShItem = shNode.GetItemParent(inputVolumeShItem)
+        # segmentationShItem = shNode.GetItemByDataNode(outputSegmentation)
+        # shNode.SetItemParent(segmentationShItem, studyShItem)
 
 
 
