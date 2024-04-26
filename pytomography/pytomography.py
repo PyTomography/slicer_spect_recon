@@ -313,7 +313,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         inputVolume = self._parameterNode.GetNodeReference("InputVolume")
 
         if inputVolume:
-            self.ui.outputVolumebaseName = inputVolume.GetName() + " reconstructed"
+            self.ui.outputVolumeSelector.baseName = inputVolume.GetName() + " reconstructed"
 
         # All the GUI updates are done
         self._updatingGUIFromParameterNode = False
@@ -394,7 +394,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.spect_scatter_combobox.currentText, self.ui.photopeak_combobox.currentIndex, 
             self.ui.spect_upperwindow_combobox.currentIndex, self.ui.spect_lowerwindow_combobox.currentIndex,
             self.ui.algorithm_selector_combobox.currentText, self.ui.osem_iterations_spinbox.value, 
-            self.ui.osem_subsets_spinbox.value, self.ui.outputVolumebaseName)
+            self.ui.osem_subsets_spinbox.value, self.ui.outputVolumeSelector.currentNode())
 
         # self.ui.statusLabel.appendPlainText("\nProcessing finished.")
 
@@ -491,13 +491,14 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         from pytomography.utils import print_collimator_parameters
         import pydicom
 
-        idx = self.getEnergyWindow(projection_data_path)
+        _,idx = self.getEnergyWindow(projection_data_path)
 
         if photopeak == 0:
             raise ValueError("Select a valid photopeak energy window")
         else:
             photopeak -=1
             photopeak = idx[photopeak]
+            print(f'photopeak id: ', photopeak)
         
         if upperwindow == 0:
             raise ValueError("Select a valid upper energy window")
@@ -510,6 +511,7 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         else:
             lowerwindow -=1
             lowerwindow = idx[lowerwindow]
+            print(f'lower: ', lowerwindow)
 
         print("Reconstructing volume...")
 
@@ -570,23 +572,57 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
 
         if loadedNodeIDs:
             volumeNode = slicer.mrmlScene.GetNodeByID(loadedNodeIDs[0])
+
+        outputVolume.SetAndObserveImageData(volumeNode.GetImageData())
+        outputVolume.CreateDefaultDisplayNodes() 
+
+        colorTableID = volumeNode.GetDisplayNode().GetColorNodeID()
+        outputVolume.GetDisplayNode().SetAndObserveColorNodeID(colorTableID)
+
+        slicer.util.setSliceViewerLayers(background=outputVolume)
+        layoutManager = slicer.app.layoutManager()
+
+        for sliceViewName in layoutManager.sliceViewNames():
+            # Rotate the slice view to align with the volume plane
+            sliceWidget = layoutManager.sliceWidget(sliceViewName)
+            sliceWidget.mrmlSliceNode().RotateToVolumePlane(outputVolume)
+            sliceWidget.sliceController().fitSliceToBackground()
         
-        volumeNode.SetName(outputVolume)
+        # Fit all slices to the volume
+        slicer.app.applicationLogic().FitSliceToAll()
+
+        slicer.mrmlScene.RemoveNode(volumeNode)
         
-        shNode = slicer.vtkMRMLSubjectHierarchyNode.GetSubjectHierarchyNode(slicer.mrmlScene)
-        inputVolumeShItem = shNode.GetItemByDataNode(inputVolume)
-        studyShItem = shNode.GetItemParent(inputVolumeShItem)
-        reconstructedShItem = shNode.GetItemByDataNode(volumeNode)
-        shNode.SetItemParent(reconstructedShItem, studyShItem)
+
+        # outputVolume.CreateDefaultDisplayNodes()
+
+        # displayNode = outputVolume.GetDisplayNode()
+        # if not displayNode:
+        #     displayNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLScalarVolumeDisplayNode")
+        #     slicer.mrmlScene.AddNode(displayNode)
+        #     outputVolume.SetAndObserveDisplayNodeID(displayNode.GetID())
+        # displayNode.SetAutoWindowLevel(volumeNode.GetDisplayNode().GetAutoWindowLevel())
+
+        # slicer.util.setSliceViewerLayers(background=outputVolume)
+        # node.SetName(volumeNode.GetName())
+        
+        # volumeNode.SetName(outputVolume)
+        
+        # shNode = slicer.vtkMRMLSubjectHierarchyNode.GetSubjectHierarchyNode(slicer.mrmlScene)
+        # inputVolumeShItem = shNode.GetItemByDataNode(inputVolume)
+        # studyShItem = shNode.GetItemParent(inputVolumeShItem)
+        # reconstructedShItem = shNode.GetItemByDataNode(outputVolume)
+        # shNode.SetItemParent(reconstructedShItem, studyShItem)
 
         import shutil
         shutil.rmtree(temp_dir)
-        DICOMUtils.closeTemporaryDatabase()
 
         print("Reconstruction successful")
 
         return reconstructedDCMInstances
     
+   
+   
     def process(self, recon_array):
         """
         Run the processing algorithm.
