@@ -801,6 +801,9 @@
                <property name="hideChildNodeTypes">
                 <stringlist notr="true"/>
                </property>
+               <property name="baseName">
+                <string>output</string>
+               </property>
                <property name="noneEnabled">
                 <bool>true</bool>
                </property>
