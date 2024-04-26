@@ -191,7 +191,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.osem_iterations_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
-        # self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
 
         # Buttons
         self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.getProjectionData)
@@ -339,13 +339,14 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.SetParameter("Algorithm", self.ui.algorithm_selector_combobox.currentText)
         self._parameterNode.SetParameter("Iterations", str(self.ui.osem_iterations_spinbox.value))
         self._parameterNode.SetParameter("Subsets", str(self.ui.osem_subsets_spinbox.value))
+        self._parameterNode.SetParameter("OutputVolume", self.ui.outputVolumeSelector.currentNodeID)
 
         self._parameterNode.EndModify(wasModified)
 
     def getProjectionData(self,node):
 
         self._inputdatapath = self.pathFromNode(node)
-        energy_window = self.logic.getEnergyWindow(self._inputdatapath)
+        energy_window,_ = self.logic.getEnergyWindow(self._inputdatapath)
 
         self.ui.spect_upperwindow_combobox.addItems(energy_window)
         self.ui.spect_lowerwindow_combobox.addItems(energy_window)
@@ -353,8 +354,6 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def getAttdata(self,node):
         self._attdatapath = os.path.dirname(self.pathFromNode(node))
-        print(self._attdatapath)
-
 
     def pathFromNode(self, node):
         #TODO: Review this function to handle the case where the data was dragged and dropped
@@ -384,6 +383,11 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
             if self._attdatapath is None:
                 self.getAttdata(self.ui.attenuationdata.currentNode())
+
+            # Create new volume node, if not selected yet
+            if not self.ui.outputVolumeSelector.currentNode():
+                self.ui.outputVolumeSelector.addNode()
+
 
         path= self.logic.reconstruct( 
             self.ui.inputdata.currentNode(), self._inputdatapath, self._attdatapath, self.ui.spect_collimator_combobox.currentText, 
@@ -487,20 +491,25 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         from pytomography.utils import print_collimator_parameters
         import pydicom
 
+        idx = self.getEnergyWindow(projection_data_path)
+
         if photopeak == 0:
             raise ValueError("Select a valid photopeak energy window")
         else:
             photopeak -=1
+            photopeak = idx[photopeak]
         
         if upperwindow == 0:
             raise ValueError("Select a valid upper energy window")
         else:
             upperwindow -=1
+            upperwindow = idx[upperwindow]
         
         if lowerwindow == 0:
             raise ValueError("Select a valid lower energy window")
         else:
             lowerwindow -=1
+            lowerwindow = idx[lowerwindow]
 
         print("Reconstructing volume...")
 
