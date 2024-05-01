@@ -579,17 +579,30 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         colorTableID = volumeNode.GetDisplayNode().GetColorNodeID()
         outputVolume.GetDisplayNode().SetAndObserveColorNodeID(colorTableID)
 
-        slicer.util.setSliceViewerLayers(background=outputVolume)
-        layoutManager = slicer.app.layoutManager()
+        window = volumeNode.GetDisplayNode().GetWindow()
+        level = volumeNode.GetDisplayNode().GetLevel()
+        outputVolume.GetDisplayNode().SetWindow(window)
+        outputVolume.GetDisplayNode().SetLevel(level)
 
-        for sliceViewName in layoutManager.sliceViewNames():
-            # Rotate the slice view to align with the volume plane
-            sliceWidget = layoutManager.sliceWidget(sliceViewName)
-            sliceWidget.mrmlSliceNode().RotateToVolumePlane(outputVolume)
-            sliceWidget.sliceController().fitSliceToBackground()
+        # Copy the orientation matrix from volumeNode to outputVolume if needed
+        # Get the orientation matrix from the volumeNode
+        volumeMatrix = vtk.vtkMatrix4x4()
+        volumeNode.GetRASToIJKMatrix(volumeMatrix)
+
+        # Apply the same orientation matrix to the outputVolume
+        outputVolume.SetRASToIJKMatrix(volumeMatrix)
+
+        # slicer.util.setSliceViewerLayers(background=outputVolume)
+        # layoutManager = slicer.app.layoutManager()
+
+        # for sliceViewName in layoutManager.sliceViewNames():
+        #     # Rotate the slice view to align with the volume plane
+        #     sliceWidget = layoutManager.sliceWidget(sliceViewName)
+        #     sliceWidget.mrmlSliceNode().RotateToVolumePlane(outputVolume)
+        #     sliceWidget.sliceController().fitSliceToBackground()
         
-        # Fit all slices to the volume
-        slicer.app.applicationLogic().FitSliceToAll()
+        # # Fit all slices to the volume
+        # slicer.app.applicationLogic().FitSliceToAll()
 
         slicer.mrmlScene.RemoveNode(volumeNode)
         
@@ -622,6 +635,8 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         return reconstructedDCMInstances
     
    
+# getNode('vtkMRMLSliceNodeRed').SetAxisLabel(2,"Dorsal")
+# getNode('vtkMRMLSliceNodeRed').SetAxisLabel(3,"Ventral")
    
     def process(self, recon_array):
         """
