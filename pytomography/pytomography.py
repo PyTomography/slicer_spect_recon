@@ -143,9 +143,8 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode = None
         # self._parameterNodeGuiTag = None
         self._updatingGUIFromParameterNode = False
-        self._inputdatapath=None
-        self._attdatapath=None
-        self.last_text = {}
+        self._projectionList = None
+
 
     def setup(self):
         """
@@ -159,13 +158,7 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.layout.addWidget(uiWidget)
         self.ui = slicer.util.childWidgetVariables(uiWidget)
 
-        # Set scene in MRML widgets. Make sure that in Qt designer the top-level qMRMLWidget's
-        # "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
-        # "setMRMLScene(vtkMRMLScene*)" slot.
-
         uiWidget.setMRMLScene(slicer.mrmlScene)
-        self.ui.inputdata.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-        self.ui.attenuationdata.nodeTypes = ["vtkMRMLScalarVolumeNode"]
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -180,7 +173,8 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
       
-        self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        # self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        self.ui.multiInput.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
         
         self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.spect_collimator_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
@@ -194,8 +188,8 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
 
         # Buttons
-        self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.getProjectionData)
-        self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.getAttdata)
+        # self.ui.inputdata.connect('currentNodeChanged(vtkMRMLNode*)', self.getProjectionData)
+        # self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.getAttdata)
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
 
         # Make sure parameter node is initialized (needed for module reload)
@@ -240,11 +234,11 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.setParameterNode(self.logic.getParameterNode())
 
         # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if not self._parameterNode.GetNodeReference("InputVolume"):
-            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+        # if not self._parameterNode.GetNodeReference("InputVolume"):
+        #     firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
         
-            if firstVolumeNode:
-                self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
+        #     if firstVolumeNode:
+        #         self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
                 
 
     def setParameterNode(self, inputParameterNode):
@@ -282,10 +276,15 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
 
+        inputVolume1 = self._parameterNode.GetNodeReference("InputVolume1")
+        if inputVolume1 and self._parameterNode.GetParameter("Photopeak") :
+            self.getProjectionData(inputVolume1)
 
-        lastPhotopeakSelection = self.last_text.get(self.ui.photopeak_combobox.objectName, "None")
-        lastUpperWindowSelection = self.last_text.get(self.ui.spect_upperwindow_combobox.objectName, "None")
-        lastLowerWindowSelection = self.last_text.get(self.ui.spect_lowerwindow_combobox.objectName, "None")
+        last_text={}
+
+        lastPhotopeakSelection = last_text.get(self.ui.photopeak_combobox.objectName, "None")
+        lastUpperWindowSelection = last_text.get(self.ui.spect_upperwindow_combobox.objectName, "None")
+        lastLowerWindowSelection = last_text.get(self.ui.spect_lowerwindow_combobox.objectName, "None")
 
 
         if self.ui.photopeak_combobox.currentText !=  lastPhotopeakSelection:
@@ -294,29 +293,29 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
             self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
             
-            self.last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
+            last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
         
         if self.ui.spect_upperwindow_combobox.currentText != lastUpperWindowSelection:
             upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
             upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
             self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
             
-            self.last_text[self.ui.spect_upperwindow_combobox.objectName] = self.ui.spect_upperwindow_combobox.currentText
+            last_text[self.ui.spect_upperwindow_combobox.objectName] = self.ui.spect_upperwindow_combobox.currentText
             
         if self.ui.spect_lowerwindow_combobox.currentText != lastLowerWindowSelection:
             lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
             lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
             self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
      
-            self.last_text[self.ui.spect_lowerwindow_combobox.objectName] = self.ui.spect_lowerwindow_combobox.currentText
-
-        inputVolume = self._parameterNode.GetNodeReference("InputVolume")
-
-        if inputVolume:
-            self.ui.outputVolumeSelector.baseName = inputVolume.GetName() + " reconstructed"
+            last_text[self.ui.spect_lowerwindow_combobox.objectName] = self.ui.spect_lowerwindow_combobox.currentText
+            
+        if inputVolume1:
+            self.ui.outputVolumeSelector.baseName = inputVolume1.GetName() + " reconstructed"
 
         # All the GUI updates are done
         self._updatingGUIFromParameterNode = False
+
+
 
     def updateParameterNodeFromGUI(self, caller=None, event=None):
         """
@@ -329,7 +328,12 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
 
-        self._parameterNode.SetNodeReferenceID("InputVolume", self.ui.inputdata.currentNodeID)
+        self._projectionList = self.ui.multiInput.checkedNodes()
+        for counter, node in enumerate(self._projectionList, start=1):
+            if node:
+                nodeID = node.GetID()
+                self._parameterNode.SetNodeReferenceID(f"InputVolume{counter}", nodeID)  
+
         self._parameterNode.SetNodeReferenceID("AttenuationData", self.ui.attenuationdata.currentNodeID)
         self._parameterNode.SetParameter("Collimator", self.ui.spect_collimator_combobox.currentText)
         self._parameterNode.SetParameter("Scatter", self.ui.spect_scatter_combobox.currentText)
@@ -345,29 +349,17 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def getProjectionData(self,node):
 
-        self._inputdatapath = self.pathFromNode(node)
-        energy_window,_ = self.logic.getEnergyWindow(self._inputdatapath)
+        inputdatapath = self.logic.pathFromNode(node)
+        energy_window,_ = self.logic.getEnergyWindow(inputdatapath)
 
+        self.ui.spect_upperwindow_combobox.clear()
         self.ui.spect_upperwindow_combobox.addItems(energy_window)
+
+        self.ui.spect_lowerwindow_combobox.clear()
         self.ui.spect_lowerwindow_combobox.addItems(energy_window)
+
+        self.ui.photopeak_combobox.clear()
         self.ui.photopeak_combobox.addItems(energy_window)
-
-    def getAttdata(self,node):
-        self._attdatapath = os.path.dirname(self.pathFromNode(node))
-
-    def pathFromNode(self, node):
-        #TODO: Review this function to handle the case where the data was dragged and dropped
-        if node is not None:
-            storageNode = node.GetStorageNode()
-            if storageNode is not None: # loaded via drag-drop
-                filepath = storageNode.GetFullNameFromFileName()
-            else: # Loaded via DICOM browser
-                instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
-                filepath = slicer.dicomDatabase.fileForInstance(instanceUIDs[0])
-        else: # Loaded via DICOM browser
-            instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
-            filepath = slicer.dicomDatabase.fileForInstance(instanceUIDs[0])
-        return filepath
 
 
     # def _checkCanApply(self, caller=None, event=None) -> None:
@@ -381,20 +373,20 @@ class pyTomographyWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onReconstructButton(self):
 
         with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
-            if self._attdatapath is None:
-                self.getAttdata(self.ui.attenuationdata.currentNode())
 
             # Create new volume node, if not selected yet
             if not self.ui.outputVolumeSelector.currentNode():
                 self.ui.outputVolumeSelector.addNode()
 
 
-        path= self.logic.reconstruct( 
-            self.ui.inputdata.currentNode(), self._inputdatapath, self._attdatapath, self.ui.spect_collimator_combobox.currentText, 
+        recon_array, fileNMpaths= self.logic.reconstruct( 
+            self._projectionList, self.ui.attenuationdata.currentNode(), self.ui.spect_collimator_combobox.currentText, 
             self.ui.spect_scatter_combobox.currentText, self.ui.photopeak_combobox.currentIndex, 
             self.ui.spect_upperwindow_combobox.currentIndex, self.ui.spect_lowerwindow_combobox.currentIndex,
             self.ui.algorithm_selector_combobox.currentText, self.ui.osem_iterations_spinbox.value, 
-            self.ui.osem_subsets_spinbox.value, self.ui.outputVolumeSelector.currentNode())
+            self.ui.osem_subsets_spinbox.value)
+        
+        self.logic.stitchMultibed(recon_array, fileNMpaths, self.ui.outputVolumeSelector.currentNode())
 
         # self.ui.statusLabel.appendPlainText("\nProcessing finished.")
 
@@ -436,12 +428,13 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
-        slicer.util.pip_install("pytomography==2.1.0")
+        slicer.util.pip_install("pytomography==2.1.1")
         print("Im here")
 
     
     def getEnergyWindow(self, directory):
-
+        
+        import numpy as np
         import pydicom
         ds = pydicom.read_file(directory)
 
@@ -455,12 +448,25 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
             lower_limits.append(lower_limit)
             energy_windows.append(f'{energy_window_name} ({lower_limit}keV - {upper_limit}keV)')
 
-
-        import numpy as np
         idx_sorted = np.argsort(lower_limits)
         energy_windows = list(np.array(energy_windows)[idx_sorted])
 
         return energy_windows, idx_sorted
+    
+    
+    def pathFromNode(self, node):
+        #TODO: Review this function to handle the case where the data was dragged and dropped
+        if node is not None:
+            storageNode = node.GetStorageNode()
+            if storageNode is not None: # loaded via drag-drop
+                filepath = storageNode.GetFullNameFromFileName()
+            else: # Loaded via DICOM browser
+                instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
+                filepath = slicer.dicomDatabase.fileForInstance(instanceUIDs[0])
+        else: # Loaded via DICOM browser
+            instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
+            filepath = slicer.dicomDatabase.fileForInstance(instanceUIDs[0])
+        return filepath
 
     def setDefaultParameters(self, parameterNode):
         """
@@ -485,73 +491,132 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         if not parameterNode.GetParameter("Subsets"):
             parameterNode.SetParameter("Subsets", "0")
 
-    def reconstruct(self, inputVolume, projection_data_path, ct_path, collimator, scatter, photopeak, 
-                    upperwindow, lowerwindow, algorithm, iter, subset, outputVolume):
+    def reconstruct(self, files_NM, ct_file, collimator, scatter, photopeak, 
+                    upperwindow, lowerwindow, algorithm, iter, subset):
         import pytomography    
         from pytomography.utils import print_collimator_parameters
+        from pytomography.io.SPECT import dicom
+        from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+        from pytomography.projectors.SPECT import SPECTSystemMatrix
+        from pytomography.likelihoods import PoissonLogLikelihood
+        from pytomography.algorithms import OSEM
         import pydicom
 
-        _,idx = self.getEnergyWindow(projection_data_path)
+        fileNMpaths = []
+        for fileNM in files_NM:
+            path = self.pathFromNode(fileNM)
+            fileNMpaths.append(path)
+        _,idx = self.getEnergyWindow(fileNMpaths[0])
 
-        if photopeak == 0:
-            raise ValueError("Select a valid photopeak energy window")
-        else:
-            photopeak -=1
-            photopeak = idx[photopeak]
-            print(f'photopeak id: ', photopeak)
+        # if photopeak == 0:
+        #     raise ValueError("Select a valid photopeak energy window")
+        # else:
+        #     photopeak -=1
+        #     photopeak = idx[photopeak]
+        #     print(f'photopeak id: ', photopeak)
         
-        if upperwindow == 0:
-            raise ValueError("Select a valid upper energy window")
-        else:
-            upperwindow -=1
-            upperwindow = idx[upperwindow]
+        # if upperwindow == 0:
+        #     raise ValueError("Select a valid upper energy window")
+        # else:
+        #     upperwindow -=1
+        #     upperwindow = idx[upperwindow]
         
-        if lowerwindow == 0:
-            raise ValueError("Select a valid lower energy window")
-        else:
-            lowerwindow -=1
-            lowerwindow = idx[lowerwindow]
-            print(f'lower: ', lowerwindow)
+        # if lowerwindow == 0:
+        #     raise ValueError("Select a valid lower energy window")
+        # else:
+        #     lowerwindow -=1
+        #     lowerwindow = idx[lowerwindow]
+            # print(f'lower: ', lowerwindow)
+
+        index_peak = idx[photopeak]
+        print(f'photopeak id: ', index_peak)
+
+        index_upper = idx[upperwindow]
+        print(f'upperwindow: {index_upper}')
+
+        index_lower = idx[lowerwindow]
+        print(f'lower: ', index_lower)
 
         print("Reconstructing volume...")
 
         import os
+
+        ct_path = os.path.dirname(self.pathFromNode(ct_file))
         print(ct_path)
+
         files_CT = [os.path.join(ct_path, file) for file in os.listdir(ct_path)]
+        projectionss = dicom.load_multibed_projections(fileNMpaths)
+
+
+        recon_array = []
+        for counter, fileNMpath in enumerate(fileNMpaths, start=0):
+            projections = projectionss[counter]
+            object_meta, proj_meta = dicom.get_metadata(fileNMpath, index_peak)
+            photopeak = projections[index_peak].unsqueeze(0)
+            scatter = dicom.get_scatter_from_TEW_projections(fileNMpath, projections, index_peak, index_lower, index_upper)
+            attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, fileNMpath, index_peak)
+            
+            energy_kev = 208
+            psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, energy_kev)
+            att_transform = SPECTAttenuationTransform(attenuation_map)
+            psf_transform = SPECTPSFTransform(psf_meta)
+            
+            system_matrix = SPECTSystemMatrix(
+                obj2obj_transforms = [att_transform,psf_transform],
+                proj2proj_transforms = [],
+                object_meta = object_meta,
+                proj_meta = proj_meta)
+
+            likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
+
+            if algorithm == "OSEM":
+                reconstruction_algorithm = OSEM(likelihood)
+            
+            reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
+
+            recon_array.append(reconstructed_object)
+
+        return recon_array, fileNMpaths
+    
+       
+        # outputVolume.CreateDefaultDisplayNodes()
+
+        # displayNode = outputVolume.GetDisplayNode()
+        # if not displayNode:
+        #     displayNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLScalarVolumeDisplayNode")
+        #     slicer.mrmlScene.AddNode(displayNode)
+        #     outputVolume.SetAndObserveDisplayNodeID(displayNode.GetID())
+        # displayNode.SetAutoWindowLevel(volumeNode.GetDisplayNode().GetAutoWindowLevel())
+
+        # slicer.util.setSliceViewerLayers(background=outputVolume)
+        # node.SetName(volumeNode.GetName())
         
+        # volumeNode.SetName(outputVolume)
+        
+        # shNode = slicer.vtkMRMLSubjectHierarchyNode.GetSubjectHierarchyNode(slicer.mrmlScene)
+        # inputVolumeShItem = shNode.GetItemByDataNode(inputVolume)
+        # studyShItem = shNode.GetItemParent(inputVolumeShItem)
+        # reconstructedShItem = shNode.GetItemByDataNode(outputVolume)
+        # shNode.SetItemParent(reconstructedShItem, studyShItem)
+
+
+
+    def stitchMultibed(self, recon_array, fileNMpaths, outputVolume):
         from pytomography.io.SPECT import dicom
-        self.object_meta, self.proj_meta = dicom.get_metadata(projection_data_path)
-        self.projections = dicom.get_projections(projection_data_path, photopeak)
-        scatter = dicom.get_scatter_from_TEW(projection_data_path, photopeak, lowerwindow, upperwindow)
+        import torch
 
-        from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-        att_transform = SPECTAttenuationTransform(filepath=files_CT)
-        att_transform.configure(self.object_meta, self.proj_meta)
-        collimator_name = collimator
-        #TODO dynamically select energy
-        energy_kev = 208
-        psf_meta = dicom.get_psfmeta_from_scanner_params(collimator_name, energy_kev)
-        psf_transform = SPECTPSFTransform(psf_meta)
+        print(recon_array[0].shape)
+        a = torch.stack(recon_array)
+        print(a.size())
+
+        recon_stitched = dicom.stitch_multibed(recons=torch.cat(recon_array), files_NM = fileNMpaths)
+    
         
-        from pytomography.projectors.SPECT import SPECTSystemMatrix
-        system_matrix = SPECTSystemMatrix(
-        obj2obj_transforms = [att_transform,psf_transform],
-        proj2proj_transforms = [],
-        object_meta = self.object_meta,
-        proj_meta = self.proj_meta)
-
-        from pytomography.likelihoods import PoissonLogLikelihood
-        likelihood = PoissonLogLikelihood(system_matrix, self.projections, scatter)
-
-        from pytomography.algorithms import OSEM
-        if algorithm == "OSEM":
-            reconstruction_algorithm = OSEM(likelihood)
-        
-        reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
-
         save_path = r"C:\Users\okdzi\OneDrive\Desktop\projectiondata\newfolder"
 
-        reconstructedDCMInstances = dicom.save_dcm(save_path, reconstructed_object, projection_data_path, 'OSEM_4it_10ss', True)
+        reconstructedDCMInstances = dicom.save_dcm(save_path = save_path, object = recon_stitched, 
+                                                   file_NM = fileNMpaths[0], recon_name = 'OSEM_4it_10ss', return_ds =True)
+                                                   #scale_by_number_projections = True, single_dicom_file=True )
     
         from DICOMLib import DICOMUtils
         import tempfile
@@ -584,60 +649,22 @@ class pyTomographyLogic(ScriptedLoadableModuleLogic):
         outputVolume.GetDisplayNode().SetWindow(window)
         outputVolume.GetDisplayNode().SetLevel(level)
 
-        # Copy the orientation matrix from volumeNode to outputVolume if needed
-        # Get the orientation matrix from the volumeNode
         volumeMatrix = vtk.vtkMatrix4x4()
         volumeNode.GetRASToIJKMatrix(volumeMatrix)
 
         # Apply the same orientation matrix to the outputVolume
         outputVolume.SetRASToIJKMatrix(volumeMatrix)
 
-        # slicer.util.setSliceViewerLayers(background=outputVolume)
-        # layoutManager = slicer.app.layoutManager()
-
-        # for sliceViewName in layoutManager.sliceViewNames():
-        #     # Rotate the slice view to align with the volume plane
-        #     sliceWidget = layoutManager.sliceWidget(sliceViewName)
-        #     sliceWidget.mrmlSliceNode().RotateToVolumePlane(outputVolume)
-        #     sliceWidget.sliceController().fitSliceToBackground()
-        
-        # # Fit all slices to the volume
-        # slicer.app.applicationLogic().FitSliceToAll()
-
         slicer.mrmlScene.RemoveNode(volumeNode)
         
-
-        # outputVolume.CreateDefaultDisplayNodes()
-
-        # displayNode = outputVolume.GetDisplayNode()
-        # if not displayNode:
-        #     displayNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLScalarVolumeDisplayNode")
-        #     slicer.mrmlScene.AddNode(displayNode)
-        #     outputVolume.SetAndObserveDisplayNodeID(displayNode.GetID())
-        # displayNode.SetAutoWindowLevel(volumeNode.GetDisplayNode().GetAutoWindowLevel())
-
-        # slicer.util.setSliceViewerLayers(background=outputVolume)
-        # node.SetName(volumeNode.GetName())
-        
-        # volumeNode.SetName(outputVolume)
-        
-        # shNode = slicer.vtkMRMLSubjectHierarchyNode.GetSubjectHierarchyNode(slicer.mrmlScene)
-        # inputVolumeShItem = shNode.GetItemByDataNode(inputVolume)
-        # studyShItem = shNode.GetItemParent(inputVolumeShItem)
-        # reconstructedShItem = shNode.GetItemByDataNode(outputVolume)
-        # shNode.SetItemParent(reconstructedShItem, studyShItem)
-
         import shutil
         shutil.rmtree(temp_dir)
 
         print("Reconstruction successful")
 
-        return reconstructedDCMInstances
+        # return reconstructedDCMInstances
     
-   
-# getNode('vtkMRMLSliceNodeRed').SetAxisLabel(2,"Dorsal")
-# getNode('vtkMRMLSliceNodeRed').SetAxisLabel(3,"Ventral")
-   
+    
     def process(self, recon_array):
         """
         Run the processing algorithm.
