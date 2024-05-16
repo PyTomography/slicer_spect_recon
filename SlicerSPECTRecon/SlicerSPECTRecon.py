@@ -70,17 +70,25 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
-        self.ui.multiInput.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
+        self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
+        self.ui.psf_toggle.connect('toggled(bool)', self.hideShowItems)
+        self.ui.scatter_toggle.connect('toggled(bool)', self.hideShowItems)
+        self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
+        # Update info
+        self.ui.NM_data_selector.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
         self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.spect_collimator_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_upperwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_lowerwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
-        self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.osem_iterations_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        # Default values
+        self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
+        self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
+        self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         # Buttons
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
         # Make sure parameter node is initialized (needed for module reload)
@@ -136,12 +144,23 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self._parameterNode is not None:
             self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
             
+    def hideShowItems(self, called=None, event=None):
+        print(self.ui.attenuation_toggle.checked)
+        self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
+        self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
+        self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
+        # Algorithm stuff
+        if self.ui.algorithm_selector_combobox.currentText!='OSEM':
+            self.ui.osem_groupbox.setVisible(False)
+        elif self.ui.algorithm_selector_combobox.currentText=='OSEM':
+            self.ui.osem_groupbox.setVisible(True)
+    
     def updateGUIFromParameterNode(self, caller=None, event=None):
         """
         This method is called whenever parameter node is changed.
         The module GUI is updated to show the current state of the parameter node.
         """
-        if self._parameterNode is None or self._updatingGUIFromParameterNode:
+        if self._updatingGUIFromParameterNode:
             return
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
@@ -152,23 +171,27 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         lastPhotopeakSelection = last_text.get(self.ui.photopeak_combobox.objectName, "None")
         lastUpperWindowSelection = last_text.get(self.ui.spect_upperwindow_combobox.objectName, "None")
         lastLowerWindowSelection = last_text.get(self.ui.spect_lowerwindow_combobox.objectName, "None")
-        if self.ui.photopeak_combobox.currentText !=  lastPhotopeakSelection:
-            photopeak_value = self._parameterNode.GetParameter("Photopeak")
-            photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
-            self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
-            last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
-        if self.ui.spect_upperwindow_combobox.currentText != lastUpperWindowSelection:
-            upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
-            upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
-            self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
-            last_text[self.ui.spect_upperwindow_combobox.objectName] = self.ui.spect_upperwindow_combobox.currentText
-        if self.ui.spect_lowerwindow_combobox.currentText != lastLowerWindowSelection:
-            lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
-            lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
-            self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
-            last_text[self.ui.spect_lowerwindow_combobox.objectName] = self.ui.spect_lowerwindow_combobox.currentText
+        # Attenuation Stuff
+        # Scatter Stuff
+        if self.ui.scatter_toggle.checked:
+            if self.ui.photopeak_combobox.currentText !=  lastPhotopeakSelection:
+                photopeak_value = self._parameterNode.GetParameter("Photopeak")
+                photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
+                self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
+                last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
+            if self.ui.spect_upperwindow_combobox.currentText != lastUpperWindowSelection:
+                upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
+                upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
+                self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
+                last_text[self.ui.spect_upperwindow_combobox.objectName] = self.ui.spect_upperwindow_combobox.currentText
+            if self.ui.spect_lowerwindow_combobox.currentText != lastLowerWindowSelection:
+                lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
+                lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
+                self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
+                last_text[self.ui.spect_lowerwindow_combobox.objectName] = self.ui.spect_lowerwindow_combobox.currentText
         if inputVolume1:
             self.ui.outputVolumeSelector.baseName = inputVolume1.GetName() + " reconstructed"
+        
         # All the GUI updates are done
         self._updatingGUIFromParameterNode = False
 
@@ -180,7 +203,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self._parameterNode is None or self._updatingGUIFromParameterNode:
             return
         wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
-        self._projectionList = self.ui.multiInput.checkedNodes()
+        self._projectionList = self.ui.NM_data_selector.checkedNodes()
         for counter, node in enumerate(self._projectionList, start=1):
             if node:
                 nodeID = node.GetID()
@@ -199,7 +222,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def getProjectionData(self,node):
         inputdatapath = self.logic.pathFromNode(node)
-        energy_window,_ = self.logic.getEnergyWindow(inputdatapath)
+        energy_window,_,_ = self.logic.getEnergyWindow(inputdatapath)
         self.ui.spect_upperwindow_combobox.clear()
         self.ui.spect_upperwindow_combobox.addItems(energy_window)
         self.ui.spect_lowerwindow_combobox.clear()
@@ -213,11 +236,19 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if not self.ui.outputVolumeSelector.currentNode():
                 self.ui.outputVolumeSelector.addNode()
         recon_array, fileNMpaths= self.logic.reconstruct( 
-            self._projectionList, self.ui.attenuationdata.currentNode(), self.ui.spect_collimator_combobox.currentText, 
-            self.ui.spect_scatter_combobox.currentText, self.ui.photopeak_combobox.currentIndex, 
-            self.ui.spect_upperwindow_combobox.currentIndex, self.ui.spect_lowerwindow_combobox.currentIndex,
-            self.ui.algorithm_selector_combobox.currentText, self.ui.osem_iterations_spinbox.value, 
-            self.ui.osem_subsets_spinbox.value)
+            files_NM = self._projectionList,
+            attenuation_toggle = self.ui.attenuation_toggle.checked,
+            ct_file = self.ui.attenuationdata.currentNode(),
+            psf_toggle = self.ui.psf_toggle.checked,
+            collimator = self.ui.spect_collimator_combobox.currentText, 
+            scatter_correction_name = self.ui.spect_scatter_combobox.currentText,
+            peak_window_idx = self.ui.photopeak_combobox.currentIndex, 
+            upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex,
+            lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex,
+            algorithm = self.ui.algorithm_selector_combobox.currentText,
+            iter = self.ui.osem_iterations_spinbox.value, 
+            subset = self.ui.osem_subsets_spinbox.value
+    )
         self.logic.stitchMultibed(recon_array, fileNMpaths, self.ui.outputVolumeSelector.currentNode())
 
 class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
@@ -243,17 +274,18 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         import pydicom
         # Implementation
         ds = pydicom.read_file(directory)
-        energy_windows =[]
-        lower_limits = []
+        window_names =[]
+        mean_window_energies = []
         for energy_window_information in ds.EnergyWindowInformationSequence:
             lower_limit = energy_window_information.EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
             upper_limit = energy_window_information.EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
             energy_window_name = energy_window_information.EnergyWindowName
-            lower_limits.append(lower_limit)
-            energy_windows.append(f'{energy_window_name} ({lower_limit:.2f}keV - {upper_limit:.2f}keV)')
-        idx_sorted = np.argsort(lower_limits)
-        energy_windows = list(np.array(energy_windows)[idx_sorted])
-        return energy_windows, idx_sorted
+            mean_window_energies.append(lower_limit)
+            window_names.append(f'{energy_window_name} ({lower_limit:.2f}keV - {upper_limit:.2f}keV)')
+        idx_sorted = np.argsort(mean_window_energies)
+        window_names = list(np.array(window_names)[idx_sorted])
+        mean_window_energies = list(np.array(mean_window_energies)[idx_sorted])
+        return window_names, mean_window_energies, idx_sorted
 
     def pathFromNode(self, node):
         #TODO: Review this function to handle the case where the data was dragged and dropped
@@ -264,10 +296,20 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             else: # Loaded via DICOM browser
                 instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
                 filepath = slicer.dicomDatabase.fileForInstance(instanceUIDs[0])
-        else: # Loaded via DICOM browser
-            instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
-            filepath = slicer.dicomDatabase.fileForInstance(instanceUIDs[0])
         return filepath
+    
+    def filesFromNode(self, node):
+        #TODO: Review this function to handle the case where the data was dragged and dropped
+        if node is not None:
+            storageNode = node.GetStorageNode()
+            if storageNode is not None: # loaded via drag-drop
+                filepaths = storageNode.GetFullNameFromFileName()
+            else: # Loaded via DICOM browser
+                instanceUIDs = node.GetAttribute("DICOM.instanceUIDs").split()
+                filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in instanceUIDs]
+            return filepaths
+        else:
+            return None
 
     def setDefaultParameters(self, parameterNode):
         """
@@ -288,8 +330,22 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         if not parameterNode.GetParameter("Subsets"):
             parameterNode.SetParameter("Subsets", "0")
 
-    def reconstruct(self, files_NM, ct_file, collimator, scatter, photopeak, 
-                    upperwindow, lowerwindow, algorithm, iter, subset): 
+    def reconstruct(
+        self,
+        files_NM,
+        attenuation_toggle,
+        ct_file,
+        psf_toggle,
+        collimator,
+        scatter_correction_name,
+        peak_window_idx, 
+        upper_window_idx,
+        lower_window_idx,
+        algorithm,
+        iter,
+        subset
+    ): 
+        import numpy as np
         from pytomography.io.SPECT import dicom
         from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
         from pytomography.projectors.SPECT import SPECTSystemMatrix
@@ -299,45 +355,52 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         for fileNM in files_NM:
             path = self.pathFromNode(fileNM)
             fileNMpaths.append(path)
-        _,idx = self.getEnergyWindow(fileNMpaths[0])
-        index_peak = idx[photopeak]
-        print(f'photopeak id: ', index_peak)
-        index_upper = idx[upperwindow]
-        print(f'upperwindow: {index_upper}')
-        index_lower = idx[lowerwindow]
-        print(f'lower: ', index_lower)
+        _ , mean_window_energies, idx_sorted = self.getEnergyWindow(fileNMpaths[0])
+        idx_unsorted = np.argsort(idx_sorted) # sorted idx -> original idx
+        index_peak = idx_unsorted[peak_window_idx]
+        print(f'Photopeak Index: {index_peak}')
         print("Reconstructing volume...")
-        import os
-        ct_path = os.path.dirname(self.pathFromNode(ct_file))
-        print(ct_path)
-        files_CT = [os.path.join(ct_path, file) for file in os.listdir(ct_path)]
         projectionss = dicom.load_multibed_projections(fileNMpaths)
         recon_array = []
         for counter, fileNMpath in enumerate(fileNMpaths, start=0):
             projections = projectionss[counter]
             object_meta, proj_meta = dicom.get_metadata(fileNMpath, index_peak)
             photopeak = projections[index_peak].unsqueeze(0)
-            scatter = dicom.get_scatter_from_TEW_projections(fileNMpath, projections, index_peak, index_lower, index_upper)
-            attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, fileNMpath, index_peak)
-            energy_kev = 208 # TODO: needs to be center of photopeak window
-            psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, energy_kev)
-            att_transform = SPECTAttenuationTransform(attenuation_map)
-            psf_transform = SPECTPSFTransform(psf_meta)
+            # Scatter correction
+            if scatter_correction_name!='None':
+                index_upper = idx_unsorted[upper_window_idx]
+                print(f'Upper Index: {index_upper}')
+                index_lower = idx_unsorted[lower_window_idx]
+                print(f'Lower Index: {index_lower}')
+                scatter = dicom.get_scatter_from_TEW_projections(fileNMpath, projections, index_peak, index_lower, index_upper)
+            else:
+                scatter = None
+            # Transforms used for system modeling
+            obj2obj_transforms = []
+            if attenuation_toggle: # TODO: option for no attenuation correction
+                files_CT = self.filesFromNode(ct_file)
+                attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, fileNMpath, index_peak)
+                att_transform = SPECTAttenuationTransform(attenuation_map)
+                obj2obj_transforms.append(att_transform)
+            if psf_toggle:
+                peak_window_energy = mean_window_energies[index_peak]
+                psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, peak_window_energy)
+                psf_transform = SPECTPSFTransform(psf_meta)
+                obj2obj_transforms.append(psf_transform)
+            # Build system matrix
             system_matrix = SPECTSystemMatrix(
-                obj2obj_transforms = [att_transform,psf_transform],
+                obj2obj_transforms = obj2obj_transforms,
                 proj2proj_transforms = [],
                 object_meta = object_meta,
                 proj_meta = proj_meta)
-
+            # Build likelihood
             likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
-
+            # Build algorithm
             if algorithm == "OSEM":
                 reconstruction_algorithm = OSEM(likelihood)
-            
+            # Reconstruct
             reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
-
             recon_array.append(reconstructed_object)
-
         return recon_array, fileNMpaths
 
     def stitchMultibed(self, recon_array, fileNMpaths, outputVolume):
