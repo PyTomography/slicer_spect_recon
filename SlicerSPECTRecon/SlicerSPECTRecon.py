@@ -82,6 +82,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_upperwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_lowerwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
+        self.ui.IntrinsicResolutionSpinBox.connect('valueChanged(float)', self.updateParameterNodeFromGUI)
         self.ui.osem_iterations_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
@@ -162,6 +163,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         if self._updatingGUIFromParameterNode:
             return
+        print('update')
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
         inputVolume1 = self._parameterNode.GetNodeReference("InputVolume1")
@@ -241,6 +243,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             ct_file = self.ui.attenuationdata.currentNode(),
             psf_toggle = self.ui.psf_toggle.checked,
             collimator = self.ui.spect_collimator_combobox.currentText, 
+            intrinsic_resolution = self.ui.IntrinsicResolutionSpinBox.value,
             scatter_correction_name = self.ui.spect_scatter_combobox.currentText,
             peak_window_idx = self.ui.photopeak_combobox.currentIndex, 
             upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex,
@@ -337,6 +340,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         ct_file,
         psf_toggle,
         collimator,
+        intrinsic_resolution,
         scatter_correction_name,
         peak_window_idx, 
         upper_window_idx,
@@ -384,7 +388,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
                 obj2obj_transforms.append(att_transform)
             if psf_toggle:
                 peak_window_energy = mean_window_energies[index_peak]
-                psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, peak_window_energy)
+                psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, peak_window_energy, intrinsic_resolution=intrinsic_resolution)
                 psf_transform = SPECTPSFTransform(psf_meta)
                 obj2obj_transforms.append(psf_transform)
             # Build system matrix

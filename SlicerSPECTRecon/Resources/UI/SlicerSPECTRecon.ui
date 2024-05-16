@@ -38,7 +38,7 @@
          <item row="3" column="0">
           <widget class="QGroupBox" name="PSFGroupBox">
            <property name="title">
-            <string>PSF Correction Properties</string>
+            <string/>
            </property>
            <layout class="QGridLayout" name="gridLayout_18">
             <item row="0" column="0">
@@ -54,7 +54,14 @@
                 <item>
                  <widget class="QLabel" name="collimatorLabel">
                   <property name="text">
-                   <string>Collimator-Detector Response</string>
+                   <string>Collimator</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_2">
+                  <property name="text">
+                   <string>Intrinsic Resolution (cm)</string>
                   </property>
                  </widget>
                 </item>
@@ -534,6 +541,9 @@
                   </item>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="IntrinsicResolutionSpinBox"/>
+                </item>
                </layout>
               </item>
              </layout>
@@ -544,7 +554,7 @@
          <item row="1" column="0">
           <widget class="QGroupBox" name="AttenuationGroupBox">
            <property name="title">
-            <string>Attenuation Correction Properties</string>
+            <string/>
            </property>
            <layout class="QGridLayout" name="gridLayout_15">
             <item row="0" column="0">
@@ -628,7 +638,7 @@
          <item row="5" column="0">
           <widget class="QGroupBox" name="ScatterGroupBox">
            <property name="title">
-            <string>Scatter Correction Properties</string>
+            <string/>
            </property>
            <layout class="QGridLayout" name="gridLayout_19">
             <item row="0" column="0">
