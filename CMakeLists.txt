@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.16.3...3.19.7 FATAL_ERROR)
 
-project(Pytomography)
+project(Pytomography Slicer SPECT Reconstruction)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
 set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/Pytomography")
-set(EXTENSION_CATEGORY "Pytomography")
+set(EXTENSION_CATEGORY "Tomographic Reconstruction")
 set(EXTENSION_CONTRIBUTORS "Obed Dzikunu (QURIT), Luke Polson (QURIT), Maziar Sabouri (QURIT),  Shadab Ahamed (QURIT)")
 set(EXTENSION_DESCRIPTION "GPU accelerated SPECT and PET reconstruction application")
 set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/Pytomography.png")
@@ -19,10 +19,7 @@ include(${Slicer_USE_FILE})
 
 #-----------------------------------------------------------------------------
 # Extension modules
-add_subdirectory(pytomography)
-add_subdirectory(pytomography)
-add_subdirectory(pytomography)
-add_subdirectory(pytomography)
+add_subdirectory(SlicerSPECTRecon)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
