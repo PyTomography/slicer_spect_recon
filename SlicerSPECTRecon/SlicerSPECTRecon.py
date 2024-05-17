@@ -169,18 +169,20 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         inputVolume1 = self._parameterNode.GetNodeReference("InputVolume1")
         if inputVolume1 and self._parameterNode.GetParameter("Photopeak") :
             self.getProjectionData(inputVolume1)
-        last_text={}
-        lastPhotopeakSelection = last_text.get(self.ui.photopeak_combobox.objectName, "None")
+        last_text = {}
         lastUpperWindowSelection = last_text.get(self.ui.spect_upperwindow_combobox.objectName, "None")
         lastLowerWindowSelection = last_text.get(self.ui.spect_lowerwindow_combobox.objectName, "None")
+        # Update photopeak
+        photopeak_value = self._parameterNode.GetParameter("Photopeak")
+        photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
+        self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
+        last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
+        print(f'Photopeak: {photopeak_value}')
+        print(f'Photopeak Index: {photopeak_index}')
+        print(photopeak_index)
         # Attenuation Stuff
         # Scatter Stuff
         if self.ui.scatter_toggle.checked:
-            if self.ui.photopeak_combobox.currentText !=  lastPhotopeakSelection:
-                photopeak_value = self._parameterNode.GetParameter("Photopeak")
-                photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
-                self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
-                last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
             if self.ui.spect_upperwindow_combobox.currentText != lastUpperWindowSelection:
                 upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
                 upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
@@ -283,7 +285,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             lower_limit = energy_window_information.EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
             upper_limit = energy_window_information.EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
             energy_window_name = energy_window_information.EnergyWindowName
-            mean_window_energies.append(lower_limit)
+            mean_window_energies.append((lower_limit+upper_limit)/2)
             window_names.append(f'{energy_window_name} ({lower_limit:.2f}keV - {upper_limit:.2f}keV)')
         idx_sorted = np.argsort(mean_window_energies)
         window_names = list(np.array(window_names)[idx_sorted])
@@ -355,14 +357,16 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         from pytomography.projectors.SPECT import SPECTSystemMatrix
         from pytomography.likelihoods import PoissonLogLikelihood
         from pytomography.algorithms import OSEM
+        import pydicom
         fileNMpaths = []
         for fileNM in files_NM:
             path = self.pathFromNode(fileNM)
             fileNMpaths.append(path)
         _ , mean_window_energies, idx_sorted = self.getEnergyWindow(fileNMpaths[0])
-        idx_unsorted = np.argsort(idx_sorted) # sorted idx -> original idx
-        index_peak = idx_unsorted[peak_window_idx]
+        index_peak = idx_sorted[peak_window_idx]
+        print(mean_window_energies[index_peak])
         print(f'Photopeak Index: {index_peak}')
+        print(pydicom.read_file(fileNMpaths[0]).EnergyWindowInformationSequence[index_peak])
         print("Reconstructing volume...")
         projectionss = dicom.load_multibed_projections(fileNMpaths)
         recon_array = []
@@ -372,16 +376,16 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             photopeak = projections[index_peak].unsqueeze(0)
             # Scatter correction
             if scatter_correction_name!='None':
-                index_upper = idx_unsorted[upper_window_idx]
+                index_upper = idx_sorted[upper_window_idx]
                 print(f'Upper Index: {index_upper}')
-                index_lower = idx_unsorted[lower_window_idx]
+                index_lower = idx_sorted[lower_window_idx]
                 print(f'Lower Index: {index_lower}')
                 scatter = dicom.get_scatter_from_TEW_projections(fileNMpath, projections, index_peak, index_lower, index_upper)
             else:
                 scatter = None
             # Transforms used for system modeling
             obj2obj_transforms = []
-            if attenuation_toggle: # TODO: option for no attenuation correction
+            if attenuation_toggle:
                 files_CT = self.filesFromNode(ct_file)
                 attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, fileNMpath, index_peak)
                 att_transform = SPECTAttenuationTransform(attenuation_map)
