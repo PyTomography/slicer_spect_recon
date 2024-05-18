@@ -73,7 +73,9 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.psf_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.scatter_toggle.connect('toggled(bool)', self.hideShowItems)
+        self.ui.usePriorAnatomicalCheckBox.connect('toggled(bool)', self.hideShowItems)
         self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
+        self.ui.priorFunctionSelector.connect('currentTextChanged(QString)', self.hideShowItems)
         # Update info
         self.ui.NM_data_selector.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
         self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
@@ -90,6 +92,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
+        self.ui.PriorGroupBox.setVisible(False)
         # Buttons
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
         # Make sure parameter node is initialized (needed for module reload)
@@ -152,9 +155,12 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         # Algorithm stuff
         if self.ui.algorithm_selector_combobox.currentText!='OSEM':
-            self.ui.osem_groupbox.setVisible(False)
+            self.ui.PriorGroupBox.setVisible(True)
         elif self.ui.algorithm_selector_combobox.currentText=='OSEM':
-            self.ui.osem_groupbox.setVisible(True)
+            self.ui.PriorGroupBox.setVisible(False)
+        self.ui.priorHyperparameterGroupbox.setVisible(self.ui.priorFunctionSelector.currentText!='None')
+        self.ui.usePriorAnatomicalCheckBox.setVisible(self.ui.priorFunctionSelector.currentText!='None')
+        self.ui.priorAnatomicalGroupBox.setVisible(self.ui.usePriorAnatomicalCheckBox.checked)
     
     def updateGUIFromParameterNode(self, caller=None, event=None):
         """
