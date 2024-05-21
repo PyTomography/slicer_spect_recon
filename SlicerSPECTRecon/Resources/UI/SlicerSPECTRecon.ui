@@ -1008,12 +1008,26 @@
                     <number>0</number>
                    </property>
                    <item>
-                    <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox">
+                    <widget class="qMRMLNodeComboBox" name="anatomyPriorImageNode">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
                      <property name="nodeTypes">
-                      <stringlist notr="true"/>
+                      <stringlist notr="true">
+                       <string>vtkMRMLScalarVolumeNode</string>
+                      </stringlist>
+                     </property>
+                     <property name="showChildNodeTypes">
+                      <bool>false</bool>
                      </property>
                      <property name="hideChildNodeTypes">
                       <stringlist notr="true"/>
+                     </property>
+                     <property name="addEnabled">
+                      <bool>false</bool>
+                     </property>
+                     <property name="removeEnabled">
+                      <bool>false</bool>
                      </property>
                      <property name="interactionNodeSingletonTag">
                       <string notr="true"/>
@@ -1021,7 +1035,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QSpinBox" name="spinBox">
+                    <widget class="QSpinBox" name="nearestNeighboursSpinBox">
                      <property name="minimum">
                       <number>1</number>
                      </property>
@@ -1057,21 +1071,21 @@
                     <number>0</number>
                    </property>
                    <item>
-                    <widget class="QLabel" name="label_5">
+                    <widget class="QLabel" name="priorBetaLabel">
                      <property name="text">
                       <string>Beta</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLabel" name="label_6">
+                    <widget class="QLabel" name="priorGammaLabel">
                      <property name="text">
                       <string>Gamma</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLabel" name="label_7">
+                    <widget class="QLabel" name="priorDeltaLabel">
                      <property name="text">
                       <string>Delta</string>
                      </property>
@@ -1082,21 +1096,21 @@
                  <item>
                   <layout class="QVBoxLayout" name="verticalLayout_6">
                    <item>
-                    <widget class="QDoubleSpinBox" name="doubleSpinBox">
+                    <widget class="QDoubleSpinBox" name="priorBetaSpinBox">
                      <property name="value">
                       <double>1.000000000000000</double>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+                    <widget class="QDoubleSpinBox" name="priorGammaSpinBox">
                      <property name="value">
                       <double>1.000000000000000</double>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QDoubleSpinBox" name="doubleSpinBox_3">
+                    <widget class="QDoubleSpinBox" name="priorDeltaSpinBox">
                      <property name="value">
                       <double>1.000000000000000</double>
                      </property>
@@ -1293,6 +1307,22 @@
     <hint type="destinationlabel">
      <x>341</x>
      <y>104</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>SlicerSPECTRecon</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>anatomyPriorImageNode</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>296</x>
+     <y>599</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>356</x>
+     <y>965</y>
     </hint>
    </hints>
   </connection>

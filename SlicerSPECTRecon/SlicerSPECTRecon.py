@@ -12,6 +12,21 @@ from slicer.parameterNodeWrapper import (
     WithinRange,
 )
 from slicer import vtkMRMLScalarVolumeNode
+from DICOMLib import DICOMUtils
+slicer.util.pip_install("--ignore-requires-python pytomography==3.0.0")
+import pytomography
+print(pytomography.__version__)
+print("I'm here")
+from pytomography.io.SPECT import dicom
+from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+from pytomography.projectors.SPECT import SPECTSystemMatrix
+from pytomography.likelihoods import PoissonLogLikelihood
+from pytomography.algorithms import OSEM, BSREM, OSMAPOSL
+from pytomography.priors import RelativeDifferencePrior, QuadraticPrior, LogCoshPrior, TopNAnatomyNeighbourWeight
+import pydicom
+import torch
+import tempfile
+import shutil
 
 class SlicerSPECTRecon(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
@@ -75,10 +90,12 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.scatter_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.usePriorAnatomicalCheckBox.connect('toggled(bool)', self.hideShowItems)
         self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
+        self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
         self.ui.priorFunctionSelector.connect('currentTextChanged(QString)', self.hideShowItems)
         # Update info
         self.ui.NM_data_selector.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
         self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        self.ui.anatomyPriorImageNode.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.spect_collimator_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
@@ -153,11 +170,37 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
+        # Scatter stuff
+        if self.ui.spect_scatter_combobox.currentText=='Dual Energy Window':
+            self.ui.upperwindowLabel.setVisible(False)
+            self.ui.lowerwindowLabel.setVisible(True)
+            self.ui.spect_upperwindow_combobox.setVisible(False)
+            self.ui.spect_lowerwindow_combobox.setVisible(True)
+        elif self.ui.spect_scatter_combobox.currentText=='Triple Energy Window':
+            self.ui.upperwindowLabel.setVisible(True)
+            self.ui.lowerwindowLabel.setVisible(True)
+            self.ui.spect_upperwindow_combobox.setVisible(True)
+            self.ui.spect_lowerwindow_combobox.setVisible(True)
         # Algorithm stuff
         if self.ui.algorithm_selector_combobox.currentText!='OSEM':
             self.ui.PriorGroupBox.setVisible(True)
         elif self.ui.algorithm_selector_combobox.currentText=='OSEM':
             self.ui.PriorGroupBox.setVisible(False)
+        # Prior stuff
+        beta_show = delta_show = gamma_show = False
+        if self.ui.priorFunctionSelector.currentText=='RelativeDifferencePenalty':
+            beta_show = gamma_show = True
+        elif self.ui.priorFunctionSelector.currentText=='Quadratic':
+            beta_show = delta_show = True
+        elif self.ui.priorFunctionSelector.currentText=='LogCosh':
+            beta_show = delta_show = True
+        # Now show priors
+        self.ui.priorBetaLabel.setVisible(beta_show)
+        self.ui.priorGammaLabel.setVisible(gamma_show)
+        self.ui.priorDeltaLabel.setVisible(delta_show)
+        self.ui.priorBetaSpinBox.setVisible(beta_show)
+        self.ui.priorGammaSpinBox.setVisible(gamma_show)
+        self.ui.priorDeltaSpinBox.setVisible(delta_show)
         self.ui.priorHyperparameterGroupbox.setVisible(self.ui.priorFunctionSelector.currentText!='None')
         self.ui.usePriorAnatomicalCheckBox.setVisible(self.ui.priorFunctionSelector.currentText!='None')
         self.ui.priorAnatomicalGroupBox.setVisible(self.ui.usePriorAnatomicalCheckBox.checked)
@@ -219,6 +262,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 nodeID = node.GetID()
                 self._parameterNode.SetNodeReferenceID(f"InputVolume{counter}", nodeID)  
         self._parameterNode.SetNodeReferenceID("AttenuationData", self.ui.attenuationdata.currentNodeID)
+        self._parameterNode.SetNodeReferenceID("AnatomyPriorImage", self.ui.anatomyPriorImageNode.currentNodeID)
         self._parameterNode.SetParameter("Collimator", self.ui.spect_collimator_combobox.currentText)
         self._parameterNode.SetParameter("Scatter", self.ui.spect_scatter_combobox.currentText)
         self._parameterNode.SetParameter("Photopeak", str(self.ui.photopeak_combobox.currentText))
@@ -245,18 +289,34 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             # Create new volume node, if not selected yet
             if not self.ui.outputVolumeSelector.currentNode():
                 self.ui.outputVolumeSelector.addNode()
+        #Scatter
+        # Necessarily disable
+
+        if not self.ui.scatter_toggle.checked:
+            upper_window_idx = lower_window_idx = None
+        elif self.ui.spect_scatter_combobox.currentText=='Dual Energy Window':
+            upper_window_idx = None
+            lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
+        elif self.ui.spect_scatter_combobox.currentText=='Triple Energy Window':
+            upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex
+            lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
         recon_array, fileNMpaths= self.logic.reconstruct( 
-            files_NM = self._projectionList,
+            NM_nodes = self._projectionList,
             attenuation_toggle = self.ui.attenuation_toggle.checked,
             ct_file = self.ui.attenuationdata.currentNode(),
             psf_toggle = self.ui.psf_toggle.checked,
             collimator = self.ui.spect_collimator_combobox.currentText, 
             intrinsic_resolution = self.ui.IntrinsicResolutionSpinBox.value,
-            scatter_correction_name = self.ui.spect_scatter_combobox.currentText,
             peak_window_idx = self.ui.photopeak_combobox.currentIndex, 
-            upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex,
-            lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex,
+            upper_window_idx = upper_window_idx,
+            lower_window_idx = lower_window_idx,
             algorithm = self.ui.algorithm_selector_combobox.currentText,
+            prior_type = self.ui.priorFunctionSelector.currentText,
+            prior_beta = self.ui.priorBetaSpinBox.value,
+            prior_delta = self.ui.priorDeltaSpinBox.value,
+            prior_gamma = self.ui.priorGammaSpinBox.value,
+            prior_anatomy_image_file=self.ui.anatomyPriorImageNode.currentNode(),
+            N_prior_anatomy_nearest_neighbours = self.ui.nearestNeighboursSpinBox.value,
             iter = self.ui.osem_iterations_spinbox.value, 
             subset = self.ui.osem_subsets_spinbox.value
     )
@@ -276,8 +336,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
-        slicer.util.pip_install("pytomography==2.1.1")
-        print("Im here")
+        
 
     def getEnergyWindow(self, directory):
         # Import
@@ -341,59 +400,65 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         if not parameterNode.GetParameter("Subsets"):
             parameterNode.SetParameter("Subsets", "0")
 
+    def get_filesNM_from_NMNodes(self, NM_nodes):
+        files_NM = []
+        for NM_node in NM_nodes:
+            path = self.pathFromNode(NM_node)
+            files_NM.append(path)
+        return files_NM
+
+    def get_metadata_photopeak_scatter(self, bed_idx, files_NM, index_peak, index_lower=None, index_upper=None):
+        file_NM = files_NM[bed_idx]
+        object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak)
+        projectionss = dicom.load_multibed_projections(files_NM)
+        photopeak = projectionss[bed_idx][index_peak]
+        # No scatter
+        if (index_lower is not None)*(index_upper is None):
+            scatter = None
+        # Dual or triple energy window
+        else:
+            scatter = dicom.get_energy_window_scatter_estimate_projections(file_NM, projectionss[bed_idx], index_peak, index_lower, index_upper)
+        return object_meta, proj_meta, photopeak, scatter
+
     def reconstruct(
         self,
-        files_NM,
+        NM_nodes,
         attenuation_toggle,
         ct_file,
         psf_toggle,
         collimator,
         intrinsic_resolution,
-        scatter_correction_name,
         peak_window_idx, 
         upper_window_idx,
         lower_window_idx,
         algorithm,
+        prior_type,
+        prior_beta,
+        prior_delta,
+        prior_gamma,
+        prior_anatomy_image_file,
+        N_prior_anatomy_nearest_neighbours,
         iter,
         subset
     ): 
-        import numpy as np
-        from pytomography.io.SPECT import dicom
-        from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
-        from pytomography.projectors.SPECT import SPECTSystemMatrix
-        from pytomography.likelihoods import PoissonLogLikelihood
-        from pytomography.algorithms import OSEM
-        import pydicom
-        fileNMpaths = []
-        for fileNM in files_NM:
-            path = self.pathFromNode(fileNM)
-            fileNMpaths.append(path)
-        _ , mean_window_energies, idx_sorted = self.getEnergyWindow(fileNMpaths[0])
+        
+        # Get data/metadata
+        files_NM = self.get_filesNM_from_NMNodes(NM_nodes)
+        _ , mean_window_energies, idx_sorted = self.getEnergyWindow(files_NM[0])
         index_peak = idx_sorted[peak_window_idx]
-        print(mean_window_energies[index_peak])
-        print(f'Photopeak Index: {index_peak}')
-        print(pydicom.read_file(fileNMpaths[0]).EnergyWindowInformationSequence[index_peak])
-        print("Reconstructing volume...")
-        projectionss = dicom.load_multibed_projections(fileNMpaths)
+        index_upper = idx_sorted[upper_window_idx] if upper_window_idx is not None else None
+        index_lower = idx_sorted[lower_window_idx] if lower_window_idx is not None else None
+        print(index_upper)
+        print(index_lower)
+        # Loop over and reconstruct all bed positions
         recon_array = []
-        for counter, fileNMpath in enumerate(fileNMpaths, start=0):
-            projections = projectionss[counter]
-            object_meta, proj_meta = dicom.get_metadata(fileNMpath, index_peak)
-            photopeak = projections[index_peak].unsqueeze(0)
-            # Scatter correction
-            if scatter_correction_name!='None':
-                index_upper = idx_sorted[upper_window_idx]
-                print(f'Upper Index: {index_upper}')
-                index_lower = idx_sorted[lower_window_idx]
-                print(f'Lower Index: {index_lower}')
-                scatter = dicom.get_scatter_from_TEW_projections(fileNMpath, projections, index_peak, index_lower, index_upper)
-            else:
-                scatter = None
+        for bed_idx in range(len(files_NM)):
+            object_meta, proj_meta, photopeak, scatter = self.get_metadata_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower, index_upper)
             # Transforms used for system modeling
             obj2obj_transforms = []
             if attenuation_toggle:
                 files_CT = self.filesFromNode(ct_file)
-                attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, fileNMpath, index_peak)
+                attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, files_NM[bed_idx], index_peak)
                 att_transform = SPECTAttenuationTransform(attenuation_map)
                 obj2obj_transforms.append(att_transform)
             if psf_toggle:
@@ -409,30 +474,48 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
                 proj_meta = proj_meta)
             # Build likelihood
             likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
+            if prior_type=='None':
+                prior = None
+            else:
+                if prior_anatomy_image_file is not None:
+                    files_CT = self.filesFromNode(prior_anatomy_image_file)
+                    prior_anatomy_image = dicom.get_attenuation_map_from_CT_slices(files_CT, files_NM[bed_idx], keep_as_HU=True)
+                    prior_weight = TopNAnatomyNeighbourWeight(prior_anatomy_image, N_neighbours=N_prior_anatomy_nearest_neighbours)
+                else:
+                    prior_weight = None
+                # Now determine prior
+                if prior_type=='RelativeDifferencePenalty':
+                    prior = RelativeDifferencePrior(beta=prior_beta, gamma=prior_gamma, weight=prior_weight)
+                elif prior_type=='Quadratic':
+                    prior = QuadraticPrior(beta=prior_beta, delta=prior_delta, weight=prior_weight)
+                elif prior_type=='LogCosh':
+                    prior = LogCoshPrior(beta=prior_beta, delta=prior_delta, weight=prior_weight)
             # Build algorithm
             if algorithm == "OSEM":
                 reconstruction_algorithm = OSEM(likelihood)
+            elif algorithm == "BSREM":
+                reconstruction_algorithm = BSREM(likelihood, prior=prior)
+            elif algorithm == "OSMAPOSL":
+                reconstruction_algorithm = OSMAPOSL(likelihood, prior=prior)
             # Reconstruct
             reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
             recon_array.append(reconstructed_object)
-        return recon_array, fileNMpaths
+        return recon_array, files_NM
 
     def stitchMultibed(self, recon_array, fileNMpaths, outputVolume):
-        # Imports
-        from pytomography.io.SPECT import dicom
-        import torch
-        from DICOMLib import DICOMUtils
-        import tempfile
-        import shutil
         # Code
-        a = torch.stack(recon_array)
-        recon_stitched = dicom.stitch_multibed(recons=torch.cat(recon_array), files_NM = fileNMpaths)
+        recon_stitched = dicom.stitch_multibed(recons=torch.stack(recon_array), files_NM = fileNMpaths)
         reconstructedDCMInstances = dicom.save_dcm(save_path = None, object = recon_stitched, 
                                                    file_NM = fileNMpaths[0], recon_name = 'OSEM_4it_10ss', return_ds =True)
         temp_dir = tempfile.mkdtemp()
         for i, dataset in enumerate(reconstructedDCMInstances):
             temp_file_path = os.path.join(temp_dir, f"temp_{i}.dcm")
             dataset.save_as(temp_file_path)
+        # Add saved files to DICOM browser
+        dicomBrowser = slicer.modules.DICOMWidget.browserWidget.dicomBrowser
+        dicomBrowser.importDirectory(temp_file_path, dicomBrowser.ImportDirectoryAddLink)
+        dicomBrowser.waitForImportFinished()
+        # Create temp database so files can be loaded in viewer
         loadedNodeIDs = []
         with DICOMUtils.TemporaryDICOMDatabase() as db:
             DICOMUtils.importDicom(temp_dir, db)
