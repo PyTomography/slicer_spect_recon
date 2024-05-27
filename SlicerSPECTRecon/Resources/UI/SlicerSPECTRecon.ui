@@ -849,11 +849,6 @@
                <string>OSMAPOSL</string>
               </property>
              </item>
-             <item>
-              <property name="text">
-               <string>KEM</string>
-              </property>
-             </item>
             </widget>
            </item>
           </layout>
