@@ -23,6 +23,7 @@ from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.algorithms import OSEM, BSREM, OSMAPOSL
 from pytomography.priors import RelativeDifferencePrior, QuadraticPrior, LogCoshPrior, TopNAnatomyNeighbourWeight
+import numpy as np
 import pydicom
 import torch
 import tempfile
@@ -503,10 +504,15 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         return recon_array, files_NM
 
     def stitchMultibed(self, recon_array, fileNMpaths, outputVolume):
-        # Code
+        # Get top bed position
+        dss = np.array([pydicom.read_file(file_NM) for file_NM in fileNMpaths])
+        zs = np.array(
+            [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
+        )
+        order = np.argsort(zs)
         recon_stitched = dicom.stitch_multibed(recons=torch.stack(recon_array), files_NM = fileNMpaths)
         reconstructedDCMInstances = dicom.save_dcm(save_path = None, object = recon_stitched, 
-                                                   file_NM = fileNMpaths[0], recon_name = 'OSEM_4it_10ss', return_ds =True)
+                                                   file_NM = fileNMpaths[order[-1]], recon_name = 'slicer_recon', return_ds =True)
         temp_dir = tempfile.mkdtemp()
         for i, dataset in enumerate(reconstructedDCMInstances):
             temp_file_path = os.path.join(temp_dir, f"temp_{i}.dcm")
