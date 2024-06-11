@@ -212,6 +212,15 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             study_description
         )
 
+    def saveSIMINDAmp(self, called=None, event=None):
+        save_path = os.path.join(
+            self.ui.simind_projection_folder_PathLineEdit.currentPath,
+            self.ui.simind_projections_foldername_lineEdit.text
+        )
+        patient_name = self.ui.simind_patientname_lineEdit.text
+        study_description = self.ui.simind_studydescription_lineEdit.text
+
+
     def changeSIMINDFolderStudyDescription(self, called=None, event=None):
         name = re.sub(r'\s+', '_', self.ui.simind_patientname_lineEdit.text)
         time = self.ui.simind_tperproj_doubleSpinBox.value
@@ -348,8 +357,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.photopeak_combobox.addItems(energy_window)
 
     def onReconstructButton(self):
-        import qt
-        qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
         with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
             # Create new volume node, if not selected yet
             if not self.ui.outputVolumeSelector.currentNode():
@@ -380,13 +387,11 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             prior_beta = self.ui.priorBetaSpinBox.value,
             prior_delta = self.ui.priorDeltaSpinBox.value,
             prior_gamma = self.ui.priorGammaSpinBox.value,
-            use_anatomical_information= self.ui.usePriorAnatomicalCheckBox.checked,
             prior_anatomy_image_file=self.ui.anatomyPriorImageNode.currentNode(),
             N_prior_anatomy_nearest_neighbours = self.ui.nearestNeighboursSpinBox.value,
             iter = self.ui.osem_iterations_spinbox.value, 
             subset = self.ui.osem_subsets_spinbox.value
     )
-        qt.QApplication.restoreOverrideCursor()
         self.logic.stitchMultibed(recon_array, fileNMpaths, self.ui.outputVolumeSelector.currentNode())
 
 class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
@@ -612,7 +617,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         for energy_window_information in ds.EnergyWindowInformationSequence:
             lower_limit = energy_window_information.EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
             upper_limit = energy_window_information.EnergyWindowRangeSequence[0].EnergyWindowUpperLimit
-            energy_window_name = energy_window_information.EnergyWindowName
+            energy_window_name = 'blank'#energy_window_information.EnergyWindowName
             mean_window_energies.append((lower_limit+upper_limit)/2)
             window_names.append(f'{energy_window_name} ({lower_limit:.2f}keV - {upper_limit:.2f}keV)')
         idx_sorted = np.argsort(mean_window_energies)
@@ -676,7 +681,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         projectionss = dicom.load_multibed_projections(files_NM)
         photopeak = projectionss[bed_idx][index_peak]
         # No scatter
-        if (index_lower is not None)*(index_upper is None):
+        if (index_lower is None)*(index_upper is None):
             scatter = None
         # Dual or triple energy window
         else:
@@ -699,7 +704,6 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         prior_beta,
         prior_delta,
         prior_gamma,
-        use_anatomical_information,
         prior_anatomy_image_file,
         N_prior_anatomy_nearest_neighbours,
         iter,
@@ -741,9 +745,9 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             if prior_type=='None':
                 prior = None
             else:
-                if use_anatomical_information:
+                if prior_anatomy_image_file is not None:
                     files_CT = self.filesFromNode(prior_anatomy_image_file)
-                    prior_anatomy_image = dicom.get_attenuation_map_from_CT_slices(files_CT, keep_as_HU=True)
+                    prior_anatomy_image = dicom.get_attenuation_map_from_CT_slices(files_CT, files_NM[bed_idx], keep_as_HU=True)
                     prior_weight = TopNAnatomyNeighbourWeight(prior_anatomy_image, N_neighbours=N_prior_anatomy_nearest_neighbours)
                 else:
                     prior_weight = None
