@@ -286,6 +286,8 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.photopeak_combobox.addItems(energy_window)
 
     def onReconstructButton(self):
+        import qt
+        qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
         with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
             # Create new volume node, if not selected yet
             if not self.ui.outputVolumeSelector.currentNode():
@@ -321,6 +323,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             iter = self.ui.osem_iterations_spinbox.value, 
             subset = self.ui.osem_subsets_spinbox.value
     )
+        qt.QApplication.restoreOverrideCursor()
         self.logic.stitchMultibed(recon_array, fileNMpaths, self.ui.outputVolumeSelector.currentNode())
 
 class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
