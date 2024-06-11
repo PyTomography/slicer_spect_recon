@@ -17,7 +17,8 @@ slicer.util.pip_install("--ignore-requires-python pytomography==3.0.0")
 import pytomography
 print(pytomography.__version__)
 print("I'm here")
-from pytomography.io.SPECT import dicom
+from pytomography.io.SPECT import dicom, simind
+from pytomography.io.shared import dicom_creation
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
@@ -28,6 +29,12 @@ import pydicom
 import torch
 import tempfile
 import shutil
+import re
+import copy
+from pathlib import Path
+from pydicom.dataset import Dataset
+from pydicom.sequence import Sequence
+from datetime import datetime
 
 class SlicerSPECTRecon(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
@@ -93,6 +100,14 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
         self.ui.priorFunctionSelector.connect('currentTextChanged(QString)', self.hideShowItems)
+        # SIMIND data converter
+        self.ui.data_converter_comboBox.connect('currentTextChanged(QString)', self.hideShowItems)
+        self.ui.simind_nenergy_spinBox.connect('valueChanged(int)', self.hideShowItems)
+        self.ui.simind_patientname_lineEdit.connect('textChanged(QString)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_tperproj_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_scale_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_randomseed_spinBox.connect('valueChanged(int)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_poisson_checkBox.connect('toggled(bool)', self.hideShowItems)
         # Update info
         self.ui.NM_data_selector.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
         self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
@@ -107,12 +122,18 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         # Default values
+        self.ui.data_converters_CollapsibleButton.checked = False
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         self.ui.PriorGroupBox.setVisible(False)
+        self.ui.simind2dicom_groupBox.setVisible(False)
+        for i in range(2,10):
+            getattr(self.ui, f'PathLineEdit_w{i}').setVisible(False)
+            getattr(self.ui, f'label_w{i}').setVisible(False)
         # Buttons
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
+        self.ui.simind_projections_pushButton.connect('clicked(bool)', self.saveSIMINDProjections)
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
         
@@ -165,12 +186,53 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode = inputParameterNode
         if self._parameterNode is not None:
             self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+
+    def saveSIMINDProjections(self, called=None, event=None):
+        n_windows = self.ui.simind_nenergy_spinBox.value
+        headerfiles = []
+        time_per_projection = self.ui.simind_tperproj_doubleSpinBox.value
+        scale_factor = self.ui.simind_scale_doubleSpinBox.value
+        n_windows = self.ui.simind_nenergy_spinBox.value
+        for i in range(1,n_windows+1):
+            headerfiles.append([getattr(self.ui, f'PathLineEdit_w{i}').currentPath])
+        add_noise = self.ui.simind_poisson_checkBox.checked
+        save_path = os.path.join(
+            self.ui.simind_projection_folder_PathLineEdit.currentPath,
+            self.ui.simind_projections_foldername_lineEdit.text
+        )
+        patient_name = self.ui.simind_patientname_lineEdit.text
+        study_description = self.ui.simind_studydescription_lineEdit.text
+        self.logic.simind2DICOMProjections(
+            headerfiles,
+            time_per_projection, 
+            scale_factor, 
+            add_noise, 
+            save_path,
+            patient_name,
+            study_description
+        )
+
+    def changeSIMINDFolderStudyDescription(self, called=None, event=None):
+        name = re.sub(r'\s+', '_', self.ui.simind_patientname_lineEdit.text)
+        time = self.ui.simind_tperproj_doubleSpinBox.value
+        scale = self.ui.simind_scale_doubleSpinBox.value
+        random_seed = self.ui.simind_randomseed_spinBox.value if self.ui.simind_poisson_checkBox.checked else 'None'
+        self.ui.simind_projections_foldername_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'
+        self.ui.simind_studydescription_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'
             
     def hideShowItems(self, called=None, event=None):
         print(self.ui.attenuation_toggle.checked)
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
+        self.ui.simind2dicom_groupBox.setVisible(self.ui.data_converter_comboBox.currentText=='SIMIND to DICOM')
+        self.ui.simind_randomseed_label.setVisible(self.ui.simind_poisson_checkBox.checked)
+        self.ui.simind_randomseed_spinBox.setVisible(self.ui.simind_poisson_checkBox.checked)
+        # SIMIND2DICOM energy window stuff
+        n_windows = self.ui.simind_nenergy_spinBox.value
+        for i in range(1,10):
+            getattr(self.ui, f'PathLineEdit_w{i}').setVisible(i<=n_windows)
+            getattr(self.ui, f'label_w{i}').setVisible(i<=n_windows)
         # Scatter stuff
         if self.ui.spect_scatter_combobox.currentText=='Dual Energy Window':
             self.ui.upperwindowLabel.setVisible(False)
@@ -316,6 +378,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             prior_beta = self.ui.priorBetaSpinBox.value,
             prior_delta = self.ui.priorDeltaSpinBox.value,
             prior_gamma = self.ui.priorGammaSpinBox.value,
+            use_anatomical_information= self.ui.usePriorAnatomicalCheckBox.checked,
             prior_anatomy_image_file=self.ui.anatomyPriorImageNode.currentNode(),
             N_prior_anatomy_nearest_neighbours = self.ui.nearestNeighboursSpinBox.value,
             iter = self.ui.osem_iterations_spinbox.value, 
@@ -337,7 +400,203 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
-        
+
+    def simind2DICOMProjections(
+            self,
+            headerfiles, 
+            time_per_projection, 
+            scale, 
+            add_noise, 
+            save_path, 
+            patient_name, 
+            study_description
+        ):
+        object_meta, proj_meta = simind.get_metadata(headerfiles[0][0])
+        dr, dz = proj_meta.dr
+        Nproj, Nr, Nz = proj_meta.shape
+        Nenergy = len(headerfiles)
+        # Store lower/upper bound for each projection
+        lowers = []
+        uppers = []
+        for i in range(Nenergy):
+            with open(headerfiles[i][0]) as f:
+                headerdata = f.readlines()
+            headerdata = np.array(headerdata)
+            lwr = simind.get_header_value(headerdata, 'energy window lower level', np.float32)
+            upr = simind.get_header_value(headerdata, 'energy window upper level', np.float32)
+            lowers.append(lwr)
+            uppers.append(upr)
+        # Create DICOM
+        SOP_instance_UID = dicom_creation.generate_uid()
+        SOP_class_UID = '1.2.840.10008.5.1.4.1.1.20' # NM data storage
+        ds = dicom_creation.generate_base_dataset(SOP_instance_UID, SOP_class_UID)
+        # required by DICOM standard
+        ds.SpecificCharacterSet = "ISO_IR 100"
+        ds.InstanceCreationDate = datetime.today().strftime("%Y%m%d")
+        ds.InstanceCreationTime = datetime.today().strftime("%H%M%S.%f")
+        ds.Manufacturer = "PyTomography"
+        ds.ManufacturerModelName = f"PyTomography {pytomography.__version__}"
+        ds.InstitutionName = "UBC"
+        ds.is_little_endian = True
+        ds.is_implicit_VR = True
+        ds.SOPClassUID = ds.file_meta.MediaStorageSOPClassUID
+        ds.SOPInstanceUID = ds.file_meta.MediaStorageSOPInstanceUID
+        ds.ApprovalStatus = "UNAPPROVED"
+        # date stuff
+        ds.StudyDate = datetime.today().strftime('%Y%m%d')
+        ds.StudyTime = datetime.today().strftime('%H%M%S.%f')
+        ds.SeriesTime = datetime.today().strftime('%H%M%S.%f')
+        ds.StudyDescription = study_description
+        ds.SeriesDescription = study_description
+        ds.StudyInstanceUID = dicom_creation.generate_uid()
+        ds.SeriesInstanceUID = dicom_creation.generate_uid()
+        ds.StudyID = ''
+        ds.SeriesNumber = '1'
+        ds.InstanceNumber = None
+        ds.FrameofReferenceUID = ''
+        # patient
+        ds.PatientName = patient_name
+        ds.PatientID = '001'
+        # spacing
+        ds.PixelSpacing = [dz, dr]
+        ds.Rows = Nz
+        ds.Columns = Nr
+        ds.ImageOrientationPatient = [1,0,0,0,1,0]
+        ds.BitsAllocated = 16
+        ds.BitsStored = 16
+        ds.SamplesPerPixel = 1
+        ds.PhotometricInterpretation = "MONOCHROME2"
+        ds.PixelRepresentation = 0
+        ds.NumberOfFrames = Nenergy * Nproj
+        energy_window_range_sequence = []
+        for i in range(Nenergy):
+            energy_window_information_sequence_element = Dataset()
+            block = Dataset()
+            block.EnergyWindowLowerLimit = lowers[i]
+            block.EnergyWindowUpperLimit = uppers[i]
+            energy_window_information_sequence_element.EnergyWindowRangeSequence = Sequence([Dataset(block)])
+            energy_window_information_sequence_element.EnergyWindowName = f'Window{i+1}'
+            energy_window_range_sequence.append(energy_window_information_sequence_element)
+        ds.EnergyWindowInformationSequence = Sequence(energy_window_range_sequence)
+        energy_window_vector = []
+        for i in range(Nenergy):
+            energy_window_vector += Nproj*[i+1]
+        ds.EnergyWindowVector = energy_window_vector
+        ds.NumberOfEnergyWindows = Nenergy
+        ds.DetectorVector = Nproj*Nenergy*[1]
+        ds.RotationVector = Nproj*Nenergy*[1]
+        ds.AngularViewVector = Nproj*Nenergy*[1]
+        ds.TypeOfDetectorMotion = 'STEP AND SHOOT'
+        detector_information = Dataset()
+        detector_information.CollimatorGridName = 'asd'
+        detector_information.CollimatorType = 'PARA'
+        detector_information.ImagePositionPatient = [-(Nr-1)/2*dr, -(Nr-1)/2*dr, Nz*dz]
+        detector_information.ImageOrientationPatient = [1,0,0,0,0,-1]
+        ds.DetectorInformationSequence = Sequence([detector_information])
+        rotation_information = Dataset()
+        rotation_information.TableHeight = 0
+        rotation_information.TableTraverse = 0
+        rotation_information.RotationDirection = 'CCW' #CHAGE THIS
+        radius = simind.get_header_value(headerdata, 'Radius', np.float32)
+        rotation_information.RadialPosition = Nproj*[radius]
+        extent_of_rotation = simind.get_header_value(headerdata, 'extent of rotation', np.float32)
+        start_angle = simind.get_header_value(headerdata, 'start angle', np.float32)
+        rotation_information.ScanArc = extent_of_rotation
+        rotation_information.StartAngle = start_angle + 180
+        rotation_information.NumberOfFramesInRotation = Nproj
+        rotation_information.AngularStep = extent_of_rotation / Nproj
+        rotation_information.ActualFrameDuration = time_per_projection * 1000
+        ds.RotationInformationSequence = Sequence([rotation_information])
+        projections = simind.get_projections(headerfiles)
+        if Nenergy==1:
+            projections = projections.unsqueeze(0) # first dimension removed by default in pytomography
+        projections_realization = np.random.poisson(projections.cpu().numpy()*time_per_projection*scale)
+        projections_realization = np.transpose(projections_realization, (0,1,3,2))[:,:,::-1]
+        ds.PixelData = projections_realization.astype(np.uint16).tobytes()
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+        ds.save_as(os.path.join(save_path, f'{ds.SeriesInstanceUID}.dcm'))
+        dicomBrowser = slicer.modules.DICOMWidget.browserWidget.dicomBrowser
+        dicomBrowser.importDirectory(save_path, dicomBrowser.ImportDirectoryAddLink)
+        dicomBrowser.waitForImportFinished()
+        # Create temp database so files can be loaded in viewer
+        loadedNodeIDs = []
+        with DICOMUtils.TemporaryDICOMDatabase() as db:
+            DICOMUtils.importDicom(save_path, db)
+            patientUIDs = db.patients()
+            for patientUID in patientUIDs:
+                loadedNodeIDs.extend(DICOMUtils.loadPatientByUID(patientUID))
+
+    def simind2DICOMAmap(
+            self,
+            amap_file,
+            save_path,
+            patient_name,
+            study_description):
+        amap = simind.get_attenuation_map(amap_file)
+        scale_factor = (2**16 - 1) / amap.max()
+        amap *= scale_factor #maximum dynamic range
+        amap = amap.cpu().numpy().round().astype(np.uint16).transpose((2,1,0))
+        with open(amap_file) as f:
+            headerdata = np.array(f.readlines())
+        dx = simind.get_header_value(headerdata, 'scaling factor (mm/pixel) [1]') / 10
+        dy = simind.get_header_value(headerdata, 'scaling factor (mm/pixel) [2]') / 10
+        dz = simind.get_header_value(headerdata, 'scaling factor (mm/pixel) [3]') / 10
+        Nz, Ny, Nx = amap.shape
+
+        # Create and save DICOM file
+        Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
+        SOP_instance_UID = dicom_creation.generate_uid()
+        SOP_class_UID = '1.2.840.10008.5.1.4.1.1.2' # CT
+        ds = dicom_creation.generate_base_dataset(SOP_instance_UID, SOP_class_UID)
+        # required by DICOM standard
+        ds.SpecificCharacterSet = "ISO_IR 100"
+        ds.InstanceCreationDate = datetime.today().strftime("%Y%m%d")
+        ds.InstanceCreationTime = datetime.today().strftime("%H%M%S.%f")
+        ds.Manufacturer = "PyTomography"
+        ds.ManufacturerModelName = f"PyTomography {pytomography.__version__}"
+        ds.InstitutionName = "UBC"
+        ds.is_little_endian = True
+        ds.is_implicit_VR = True
+        ds.SOPClassUID = ds.file_meta.MediaStorageSOPClassUID
+        ds.SOPInstanceUID = ds.file_meta.MediaStorageSOPInstanceUID
+        ds.ApprovalStatus = "UNAPPROVED"
+        # date stuff
+        ds.StudyDate = datetime.today().strftime('%Y%m%d')
+        ds.StudyTime = datetime.today().strftime('%H%M%S.%f')
+        ds.SeriesTime = datetime.today().strftime('%H%M%S.%f')
+        ds.StudyDescription = study_description
+        ds.SeriesDescription = study_description
+        ds.StudyInstanceUID = dicom_creation.generate_uid()
+        ds.SeriesInstanceUID = dicom_creation.generate_uid()
+        # patient
+        ds.PatientName = patient_name
+        ds.PatientID = '001'
+        # image
+        ds.RescaleSlope = 1/scale_factor
+        ds.Rows = amap.shape[1]
+        ds.Columns = amap.shape[2]
+        ds.PixelSpacing = [dx, dy]
+        ds.SliceThickness = dz
+        ds.SpacingBetweenSlices = dz
+        ds.ImageOrientationPatient = [1,0,0,0,1,0]
+        ds.BitsAllocated = 16
+        ds.BitsStored = 16
+        ds.SamplesPerPixel = 1
+        ds.PhotometricInterpretation = "MONOCHROME2"
+        ds.PixelRepresentation = 0
+        dss = [] 
+        for i in range(amap.shape[0]):
+            ds_i = copy.deepcopy(ds)
+            ds_i.InstanceNumber = i + 1
+            ds_i.ImagePositionPatient = [-(Nx-1)/2*dx, -(Ny-1)/2*dy, i * dz]
+            ds_i.SOPInstanceUID = f"{ds.SOPInstanceUID[:-3]}{i+1:03d}"
+            ds_i.file_meta.MediaStorageSOPInstanceUID = ds_i.SOPInstanceUID
+            ds_i.PixelData = amap[i].tobytes()
+            dss.append(ds_i)  
+        for ds_i in dss:
+            ds_i.save_as(os.path.join(save_path, f'{ds_i.SOPInstanceUID}.dcm'))
+
 
     def getEnergyWindow(self, directory):
         # Import
@@ -437,6 +696,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         prior_beta,
         prior_delta,
         prior_gamma,
+        use_anatomical_information,
         prior_anatomy_image_file,
         N_prior_anatomy_nearest_neighbours,
         iter,
@@ -478,9 +738,9 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             if prior_type=='None':
                 prior = None
             else:
-                if prior_anatomy_image_file is not None:
+                if use_anatomical_information:
                     files_CT = self.filesFromNode(prior_anatomy_image_file)
-                    prior_anatomy_image = dicom.get_attenuation_map_from_CT_slices(files_CT, files_NM[bed_idx], keep_as_HU=True)
+                    prior_anatomy_image = dicom.get_attenuation_map_from_CT_slices(files_CT, keep_as_HU=True)
                     prior_weight = TopNAnatomyNeighbourWeight(prior_anatomy_image, N_neighbours=N_prior_anatomy_nearest_neighbours)
                 else:
                     prior_weight = None
@@ -504,15 +764,21 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         return recon_array, files_NM
 
     def stitchMultibed(self, recon_array, fileNMpaths, outputVolume):
-        # Get top bed position
-        dss = np.array([pydicom.read_file(file_NM) for file_NM in fileNMpaths])
-        zs = np.array(
-            [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
-        )
-        order = np.argsort(zs)
-        recon_stitched = dicom.stitch_multibed(recons=torch.stack(recon_array), files_NM = fileNMpaths)
+        if len(fileNMpaths)>1:
+            # Get top bed position
+            dss = np.array([pydicom.read_file(file_NM) for file_NM in fileNMpaths])
+            zs = np.array(
+                [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
+            )
+            order = np.argsort(zs)
+            print(torch.stack(recon_array).shape)
+            recon_stitched = dicom.stitch_multibed(recons=torch.stack(recon_array), files_NM = fileNMpaths)
+            fileNMpath_save = fileNMpaths[order[-1]]
+        else:
+            recon_stitched = recon_array[0]
+            fileNMpath_save = fileNMpaths[0]
         reconstructedDCMInstances = dicom.save_dcm(save_path = None, object = recon_stitched, 
-                                                   file_NM = fileNMpaths[order[-1]], recon_name = 'slicer_recon', return_ds =True)
+                                                   file_NM = fileNMpath_save, recon_name = 'slicer_recon', return_ds =True)
         temp_dir = tempfile.mkdtemp()
         for i, dataset in enumerate(reconstructedDCMInstances):
             temp_file_path = os.path.join(temp_dir, f"temp_{i}.dcm")
