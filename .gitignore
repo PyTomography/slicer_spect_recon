@@ -1,1 +1,6 @@
 *__pycache__*
+paper/jats
+paper/paper
+paper/*.png
+paper/*.pdf
+*code-workspace
