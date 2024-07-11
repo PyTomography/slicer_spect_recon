@@ -1325,6 +1325,9 @@
                <property name="interactionNodeSingletonTag">
                 <string>Singleton</string>
                </property>
+               <property name="selectNodeUponCreation">
+                <bool>false</bool>
+               </property>
               </widget>
              </item>
              <item>
