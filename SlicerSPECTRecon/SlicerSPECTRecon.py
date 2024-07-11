@@ -100,7 +100,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def filter_nodes_by_modality(self, comboBox, modality):
         all_nodes = getAllScalarVolumeNodes()
         mod = filterNodesByModality(all_nodes, modality)
-        comboBox.setCurrentNode(None)
+        comboBox.removeNode()
         for node in mod:
             comboBox.addNode(node)
 
