@@ -21,7 +21,7 @@ import re
 import importlib
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
 from Logic.vtkkmrmlutils import *
-from Logic import vtkkmrmlutils
+from Logic.getmetadatautils import *
 
 
 __submoduleNames__ = [
@@ -85,8 +85,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.layout.addWidget(uiWidget)
         self.ui = slicer.util.childWidgetVariables(uiWidget)
         uiWidget.setMRMLScene(slicer.mrmlScene)
-        # Create logic class. Logic implements all computations that should be possible to run
-        # in batch mode, without a graphical user interface.
         self.logic = SlicerSPECTReconLogic()
         # Connections
         # # These connections ensure that we update parameter node when scene is closed
@@ -95,15 +93,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
         self.setupConnections()
-        # self.filter_nodes_by_modality('CT')
-
-    def filter_nodes_by_modality(self, comboBox, modality):
-        all_nodes = getAllScalarVolumeNodes()
-        mod = filterNodesByModality(all_nodes, modality)
-        comboBox.removeNode()
-        for node in mod:
-            comboBox.addNode(node)
-
 
     def setupConnections(self):
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
@@ -113,16 +102,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
         self.ui.priorFunctionSelector.connect('currentTextChanged(QString)', self.hideShowItems)
-        # SIMIND data converter
-        self.ui.data_converter_comboBox.connect('currentTextChanged(QString)', self.hideShowItems)
-        self.ui.simind_nenergy_spinBox.connect('valueChanged(int)', self.hideShowItems)
-        self.ui.simind_patientname_lineEdit.connect('textChanged(QString)', self.changeSIMINDFolderStudyDescription)
-        self.ui.simind_tperproj_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
-        self.ui.simind_scale_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
-        self.ui.simind_randomseed_spinBox.connect('valueChanged(int)', self.changeSIMINDFolderStudyDescription)
-        self.ui.simind_poisson_checkBox.connect('toggled(bool)', self.hideShowItems)
         # Update info
-        self.filter_nodes_by_modality(self.ui.NM_data_selector, 'NM')
         self.ui.NM_data_selector.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
         self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.anatomyPriorImageNode.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
@@ -136,18 +116,12 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         # Default values
-        self.ui.data_converters_CollapsibleButton.checked = False
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         self.ui.PriorGroupBox.setVisible(False)
-        self.ui.simind2dicom_groupBox.setVisible(False)
-        for i in range(2,10):
-            getattr(self.ui, f'PathLineEdit_w{i}').setVisible(False)
-            getattr(self.ui, f'label_w{i}').setVisible(False)
         # Buttons
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
-        self.ui.simind_projections_pushButton.connect('clicked(bool)', self.saveSIMINDProjections)
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
         
@@ -163,7 +137,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def exit(self) -> None:
         """Called each time the user opens a different module."""
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
-        self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)# self._checkCanApply)
+        self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
     def onSceneStartClose(self, caller, event) -> None:
         """Called just before the scene is closed."""
@@ -200,61 +174,12 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode = inputParameterNode
         if self._parameterNode is not None:
             self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
-
-    def saveSIMINDProjections(self, called=None, event=None):
-        n_windows = self.ui.simind_nenergy_spinBox.value
-        headerfiles = []
-        time_per_projection = self.ui.simind_tperproj_doubleSpinBox.value
-        scale_factor = self.ui.simind_scale_doubleSpinBox.value
-        n_windows = self.ui.simind_nenergy_spinBox.value
-        for i in range(1,n_windows+1):
-            headerfiles.append([getattr(self.ui, f'PathLineEdit_w{i}').currentPath])
-        add_noise = self.ui.simind_poisson_checkBox.checked
-        save_path = os.path.join(
-            self.ui.simind_projection_folder_PathLineEdit.currentPath,
-            self.ui.simind_projections_foldername_lineEdit.text
-        )
-        patient_name = self.ui.simind_patientname_lineEdit.text
-        study_description = self.ui.simind_studydescription_lineEdit.text
-        self.logic.simind2DICOMProjections(
-            headerfiles,
-            time_per_projection, 
-            scale_factor, 
-            add_noise, 
-            save_path,
-            patient_name,
-            study_description
-        )
-
-    def saveSIMINDAmp(self, called=None, event=None):
-        save_path = os.path.join(
-            self.ui.simind_projection_folder_PathLineEdit.currentPath,
-            self.ui.simind_projections_foldername_lineEdit.text
-        )
-        patient_name = self.ui.simind_patientname_lineEdit.text
-        study_description = self.ui.simind_studydescription_lineEdit.text
-
-    def changeSIMINDFolderStudyDescription(self, called=None, event=None):
-        name = re.sub(r'\s+', '_', self.ui.simind_patientname_lineEdit.text)
-        time = self.ui.simind_tperproj_doubleSpinBox.value
-        scale = self.ui.simind_scale_doubleSpinBox.value
-        random_seed = self.ui.simind_randomseed_spinBox.value if self.ui.simind_poisson_checkBox.checked else 'None'
-        self.ui.simind_projections_foldername_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'
-        self.ui.simind_studydescription_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'
             
     def hideShowItems(self, called=None, event=None):
         print(self.ui.attenuation_toggle.checked)
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
-        self.ui.simind2dicom_groupBox.setVisible(self.ui.data_converter_comboBox.currentText=='SIMIND to DICOM')
-        self.ui.simind_randomseed_label.setVisible(self.ui.simind_poisson_checkBox.checked)
-        self.ui.simind_randomseed_spinBox.setVisible(self.ui.simind_poisson_checkBox.checked)
-        # SIMIND2DICOM energy window stuff
-        n_windows = self.ui.simind_nenergy_spinBox.value
-        for i in range(1,10):
-            getattr(self.ui, f'PathLineEdit_w{i}').setVisible(i<=n_windows)
-            getattr(self.ui, f'label_w{i}').setVisible(i<=n_windows)
         # Scatter stuff
         if self.ui.spect_scatter_combobox.currentText=='Dual Energy Window':
             self.ui.upperwindowLabel.setVisible(False)
@@ -360,8 +285,8 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.EndModify(wasModified)
 
     def getProjectionData(self,node):
-        inputdatapath = self.logic.pathFromNode(node)
-        energy_window,_,_ = self.logic.getEnergyWindow(inputdatapath)
+        inputdatapath = pathFromNode(node)
+        energy_window,_,_ = getEnergyWindow(inputdatapath)
         self.ui.spect_upperwindow_combobox.clear()
         self.ui.spect_upperwindow_combobox.addItems(energy_window)
         self.ui.spect_lowerwindow_combobox.clear()
