@@ -13,7 +13,7 @@ from slicer.parameterNodeWrapper import (
 )
 from slicer import vtkMRMLScalarVolumeNode
 from DICOMLib import DICOMUtils
-slicer.util.pip_install("--ignore-requires-python pytomography==3.0.0")
+slicer.util.pip_install("--ignore-requires-python pytomography==3.1.4")
 import pytomography
 print(pytomography.__version__)
 print("I'm here")
@@ -22,6 +22,7 @@ import importlib
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
+from Logic.simindToDicom import *
 
 
 __submoduleNames__ = [
@@ -93,6 +94,9 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
         self.setupConnections()
+        # initialize for loading data in case
+
+        
 
     def setupConnections(self):
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
@@ -122,6 +126,20 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.PriorGroupBox.setVisible(False)
         # Buttons
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
+        # Data converters
+        self.ui.data_converter_comboBox.connect('currentTextChanged(QString)', self.hideShowItems)
+        self.ui.simind_nenergy_spinBox.connect('valueChanged(int)', self.hideShowItems)
+        self.ui.simind_patientname_lineEdit.connect('textChanged(QString)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_tperproj_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_scale_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_randomseed_spinBox.connect('valueChanged(int)', self.changeSIMINDFolderStudyDescription)
+        self.ui.simind_poisson_checkBox.connect('toggled(bool)', self.hideShowItems)
+        self.ui.simind2dicom_groupBox.setVisible(False)
+        for i in range(2,10):
+            getattr(self.ui, f'PathLineEdit_w{i}').setVisible(False)
+            getattr(self.ui, f'label_w{i}').setVisible(False)
+        self.ui.simind_projections_pushButton.connect('clicked(bool)', self.saveSIMINDProjections)
+        self.ui.simindSaveAmapPushButton.connect('clicked(bool)', self.saveSIMINDAmap)
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
         
@@ -214,6 +232,15 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.priorHyperparameterGroupbox.setVisible(self.ui.priorFunctionSelector.currentText!='None')
         self.ui.usePriorAnatomicalCheckBox.setVisible(self.ui.priorFunctionSelector.currentText!='None')
         self.ui.priorAnatomicalGroupBox.setVisible(self.ui.usePriorAnatomicalCheckBox.checked)
+        # Data converters
+        self.ui.simind2dicom_groupBox.setVisible(self.ui.data_converter_comboBox.currentText=='SIMIND to DICOM')
+        self.ui.simind_randomseed_label.setVisible(self.ui.simind_poisson_checkBox.checked)
+        self.ui.simind_randomseed_spinBox.setVisible(self.ui.simind_poisson_checkBox.checked)
+        n_windows = self.ui.simind_nenergy_spinBox.value
+        for i in range(1,10):
+            getattr(self.ui, f'PathLineEdit_w{i}').setVisible(i<=n_windows)
+            getattr(self.ui, f'label_w{i}').setVisible(i<=n_windows)
+        
     
     def updateGUIFromParameterNode(self, caller=None, event=None):
         """
@@ -332,3 +359,56 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     )
         reconstructedDCMInstances = self.logic.stitchMultibed(recon_array, fileNMpaths)
         self.logic.saveVolumeInTempDB(reconstructedDCMInstances, self.ui.outputVolumeSelector.currentNode())
+        
+    # -------------------------------------------------
+    # ------------ Data Converters --------------------
+    # -------------------------------------------------
+    
+    def saveSIMINDProjections(self, called=None, event=None):
+        n_windows = self.ui.simind_nenergy_spinBox.value
+        headerfiles = []
+        time_per_projection = self.ui.simind_tperproj_doubleSpinBox.value
+        scale_factor = self.ui.simind_scale_doubleSpinBox.value
+        n_windows = self.ui.simind_nenergy_spinBox.value
+        for i in range(1,n_windows+1):
+            headerfiles.append([getattr(self.ui, f'PathLineEdit_w{i}').currentPath])
+        add_noise = self.ui.simind_poisson_checkBox.checked
+        save_path = os.path.join(
+            self.ui.simind_projection_folder_PathLineEdit.currentPath,
+            self.ui.simind_projections_foldername_lineEdit.text
+        )
+        patient_name = self.ui.simind_patientname_lineEdit.text
+        study_description = self.ui.simind_studydescription_lineEdit.text
+        simind2DICOMProjections(
+            headerfiles,
+            time_per_projection, 
+            scale_factor, 
+            add_noise, 
+            save_path,
+            patient_name,
+            study_description
+        )
+        
+    def saveSIMINDAmap(self, called=None, event=None):
+        save_path = os.path.join(
+            self.ui.simindOutputFolderPathLineEdit.currentPath,
+            'attenuation_map'
+        )
+        input_path = self.ui.simindAmapPathLineEdit.currentPath
+        patient_name = self.ui.simind_patientname_lineEdit.text
+        study_description = 'amap'
+        simind2DICOMAmap(
+            input_path,
+            save_path, 
+            patient_name,
+            study_description
+        )
+        
+
+    def changeSIMINDFolderStudyDescription(self, called=None, event=None):
+        name = re.sub(r'\s+', '_', self.ui.simind_patientname_lineEdit.text)
+        time = self.ui.simind_tperproj_doubleSpinBox.value
+        scale = self.ui.simind_scale_doubleSpinBox.value
+        random_seed = self.ui.simind_randomseed_spinBox.value if self.ui.simind_poisson_checkBox.checked else 'None'
+        self.ui.simind_projections_foldername_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'
+        self.ui.simind_studydescription_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'

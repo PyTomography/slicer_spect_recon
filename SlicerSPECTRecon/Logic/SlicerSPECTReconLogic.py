@@ -5,7 +5,6 @@ from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
 from DICOMLib import DICOMUtils
-slicer.util.pip_install("--ignore-requires-python pytomography==3.0.0")
 import pytomography
 print(pytomography.__version__)
 print("I'm here")
@@ -21,6 +20,7 @@ from Logic.priors import *
 from Logic.transforms import *
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
+from Logic.simindToDicom import *
 
 
 class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
@@ -86,8 +86,6 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         index_peak = idx_sorted[peak_window_idx]
         index_upper = idx_sorted[upper_window_idx] if upper_window_idx is not None else None
         index_lower = idx_sorted[lower_window_idx] if lower_window_idx is not None else None
-        print(index_upper)
-        print(index_lower)
         # Loop over and reconstruct all bed positions
         recon_array = []
         for bed_idx in range(len(files_NM)):
@@ -128,7 +126,6 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
                 [ds.DetectorInformationSequence[0].ImagePositionPatient[-1] for ds in dss]
             )
             order = np.argsort(zs)
-            print(torch.stack(recon_array).shape)
             recon_stitched = dicom.stitch_multibed(recons=torch.stack(recon_array), files_NM = fileNMpaths)
             fileNMpath_save = fileNMpaths[order[-1]]
         else:
