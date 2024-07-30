@@ -20,6 +20,7 @@ print("I'm here")
 import re
 import importlib
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
+from Logic.SlicerSPECTReconTest import SlicerSPECTReconTest
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
@@ -87,6 +88,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui = slicer.util.childWidgetVariables(uiWidget)
         uiWidget.setMRMLScene(slicer.mrmlScene)
         self.logic = SlicerSPECTReconLogic()
+        self.logic.callLog = self.addLog
         # Connections
         # # These connections ensure that we update parameter node when scene is closed
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
@@ -321,6 +323,11 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.photopeak_combobox.clear()
         self.ui.photopeak_combobox.addItems(energy_window)
 
+    def addLog(self, text):
+        """Append text to log window
+        """
+        self.ui.statusLabel.appendPlainText(text)
+
     def onReconstructButton(self):
         with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
             # Create new volume node, if not selected yet
@@ -338,7 +345,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex
             lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
         recon_array, fileNMpaths= self.logic.reconstruct( 
-            NM_nodes = self._projectionList,
+            files_NM = get_filesNM_from_NMNodes(self._projectionList),
             attenuation_toggle = self.ui.attenuation_toggle.checked,
             ct_file = self.ui.attenuationdata.currentNode(),
             psf_toggle = self.ui.psf_toggle.checked,

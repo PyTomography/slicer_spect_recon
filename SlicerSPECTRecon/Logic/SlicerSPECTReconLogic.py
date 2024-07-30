@@ -37,6 +37,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
+        self.callLog = None
 
 
     def setDefaultParameters(self, parameterNode):
@@ -60,7 +61,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
 
     def reconstruct(
         self,
-        NM_nodes,
+        files_NM,
         attenuation_toggle,
         ct_file,
         psf_toggle,
@@ -79,9 +80,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         iter,
         subset
     ): 
-        
-        # Get data/metadata
-        files_NM = get_filesNM_from_NMNodes(NM_nodes)
+        self.callLog("Reconstruction in progress...")
         _ , mean_window_energies, idx_sorted = getEnergyWindow(files_NM[0])
         index_peak = idx_sorted[peak_window_idx]
         index_upper = idx_sorted[upper_window_idx] if upper_window_idx is not None else None
@@ -116,6 +115,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             # Reconstruct
             reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
             recon_array.append(reconstructed_object)
+            self.callLog("\nReconstruction Successful")
         return recon_array, files_NM
 
     def stitchMultibed(self, recon_array, fileNMpaths):
@@ -145,7 +145,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
 
     def getAndDisplayVolume(self, temp_dir, outputVolumeNode):
         loadedNodeIDs = loadFromTempDB(temp_dir)
-        volumeNode = getVolumeNode(loadedNodeIDs[0])
+        volumeNode = getVolumeNode(loadedNodeIDs)
         displayVolumeInViewer(volumeNode, outputVolumeNode)
         removeNode(volumeNode, temp_dir)
         print("Reconstruction successful")
