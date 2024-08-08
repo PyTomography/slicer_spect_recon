@@ -14,6 +14,7 @@ from slicer.parameterNodeWrapper import (
 from slicer import vtkMRMLScalarVolumeNode
 from DICOMLib import DICOMUtils
 slicer.util.pip_install("--ignore-requires-python pytomography==3.1.4")
+slicer.util.pip_install("beautifulsoup4")
 import pytomography
 print(pytomography.__version__)
 print("I'm here")
@@ -88,7 +89,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui = slicer.util.childWidgetVariables(uiWidget)
         uiWidget.setMRMLScene(slicer.mrmlScene)
         self.logic = SlicerSPECTReconLogic()
-        self.logic.callLog = self.addLog
         # Connections
         # # These connections ensure that we update parameter node when scene is closed
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
@@ -251,7 +251,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         if self._updatingGUIFromParameterNode:
             return
-        print('update')
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
         inputVolume1 = self._parameterNode.GetNodeReference("InputVolume1")
@@ -265,9 +264,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
         self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
         last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
-        print(f'Photopeak: {photopeak_value}')
-        print(f'Photopeak Index: {photopeak_index}')
-        print(photopeak_index)
         # Attenuation Stuff
         # Scatter Stuff
         if self.ui.scatter_toggle.checked:
@@ -323,11 +319,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.photopeak_combobox.clear()
         self.ui.photopeak_combobox.addItems(energy_window)
 
-    def addLog(self, text):
-        """Append text to log window
-        """
-        self.ui.statusLabel.appendPlainText(text)
-
     def onReconstructButton(self):
         with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
             # Create new volume node, if not selected yet
@@ -344,6 +335,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         elif self.ui.spect_scatter_combobox.currentText=='Triple Energy Window':
             upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex
             lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
+        logging.info("Initiating Reconstruction...")
         recon_array, fileNMpaths= self.logic.reconstruct( 
             files_NM = get_filesNM_from_NMNodes(self._projectionList),
             attenuation_toggle = self.ui.attenuation_toggle.checked,
