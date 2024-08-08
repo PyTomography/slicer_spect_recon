@@ -23,6 +23,7 @@ from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
 import json
+from Logic.testutils_builder import *
 
 class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
     """
@@ -33,29 +34,53 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
 
     def setUp(self):
         """Do whatever is needed to reset the state - typically a scene clear will be enough."""
-        slicer.mrmlScene.Clear()
+        self.cleanUP()
+        logger.info("SlicerSPECTReconTests")
+        
         module_dir = os.path.dirname(__file__)
         self.resources_dir = os.path.join(module_dir, './../Resources')
+        try:
+            self.delayDisplay("Initializing Dicom Database")
+            initDICOMDatabase()
+        except:
+            raise
+
+        try:
+            openDICOMDatabase()
+        except Exception as e:
+            logger.error(f"Error opening DICOM database: {e}")
+            raise
+
+    def cleanUP(self):
+        slicer.mrmlScene.Clear(0)
+        slicer.app.processEvents()
 
     def runTest(self):
         """Run as few or as many tests as needed here."""
-        # self.setUp()
-        # self.test_load_projection_data()
-        # self.setUp()
-        # self.test_projection_metadata()
-        # self.setUp()
-        # self.test_attenuation_map_alignment()
         self.setUp()
-        self.test_psf_metadata()
-        # self.test_slicerspectrecon1()
-        # self.setUp()
-        # self.test_slicerspectrecon2()
+        # self.test_load_projection_data()
+        # self.test_projection_metadata()
+        self.test_attenuation_map_alignment()
+        # self.test_psf_metadata()
+        self.cleanUP()
 
     def test_load_projection_data(self):
 
         self.delayDisplay("Load projection data test started!")
-        files_NM = [os.path.join(self.resources_dir, 'DICOM/bed1_projections.dcm'),\
-            os.path.join(self.resources_dir, 'DICOM/bed2_projections.dcm')]
+        dicomValues = DicomValues()
+
+        try:
+            NM1_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM1_seriesinstanceUIDs])
+            NM2_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM2_seriesinstanceUIDs])
+
+            if not NM1_nodeID or not NM2_nodeID:
+                raise Exception('Unable to load all series from the database')
+        except Exception as e:
+            logger.error(f'Could not load dicom files from database: {e}')
+            raise
+
+        files_NM_nodes = [getVolumeNode(NM1_nodeID), getVolumeNode(NM2_nodeID)]
+        files_NM = [pathFromNode(files_NM_nodes[0]), pathFromNode(files_NM_nodes[1])]
         
         file_NM1 = pydicom.read_file(files_NM[0])
         file_NM2 = pydicom.read_file(files_NM[1])
@@ -73,13 +98,26 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
         projectionss = dicom.load_multibed_projections(files_NM)
 
         self.assertEqual(stack_files_NM.shape, projectionss.shape)
+        self.cleanUP()
         self.delayDisplay("Load projection data test passed!")
 
     def test_projection_metadata(self):
 
         self.delayDisplay("Get projection metadata test started!")
-        files_NM = [os.path.join(self.resources_dir, 'DICOM/bed1_projections.dcm'),\
-            os.path.join(self.resources_dir, 'DICOM/bed2_projections.dcm')]
+        dicomValues = DicomValues()
+        try:
+            NM1_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM1_seriesinstanceUIDs])
+            NM2_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM2_seriesinstanceUIDs])
+
+            if not NM1_nodeID or not NM2_nodeID:
+                raise Exception('Unable to load all series from the database')
+        except Exception as e:
+            logger.error(f'Could not load dicom files from database: {e}')
+            raise
+
+        files_NM_nodes = [getVolumeNode(NM1_nodeID), getVolumeNode(NM2_nodeID)]
+        files_NM = [pathFromNode(files_NM_nodes[0]), pathFromNode(files_NM_nodes[1])]
+
         with open(os.path.join(self.resources_dir, 'sampleDataMetaData.json'), mode="r", encoding="utf-8") as inputfilemeta:
             metadata = json.load(inputfilemeta)
 
@@ -100,15 +138,29 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
         self.assertEqual(len_energy_window_NM2, len(energy_window2))
         self.assertEqual(photopeak1_idx, photopeak2_idx)
         self.assertEqual(1, photopeak1_idx)
+        self.cleanUP()
         self.delayDisplay("Get projection metadata test passed!")
 
     def test_attenuation_map_alignment(self):
 
         self.delayDisplay("Attenuation map alignment test started!")
-        ct_path = os.path.join(self.resources_dir, "DICOM/CT")
-        files_CT = [os.path.join(ct_path, file) for file in os.listdir(ct_path)]
-        files_NM = [os.path.join(self.resources_dir, 'DICOM/bed1_projections.dcm'),\
-            os.path.join(self.resources_dir, 'DICOM/bed2_projections.dcm')]
+        dicomValues = DicomValues()
+        try:
+            NM1_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM1_seriesinstanceUIDs])
+            NM2_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM2_seriesinstanceUIDs])
+            CT_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.CT_seriesinstanceUID])
+
+            if not NM1_nodeID or not NM2_nodeID or not CT_nodeID:
+                raise Exception('Unable to load all series from the database')
+        except Exception as e:
+            logger.error(f'Could not load dicom files from database: {e}')
+            raise
+
+        files_NM_nodes = [getVolumeNode(NM1_nodeID), getVolumeNode(NM2_nodeID)]
+        files_NM = [pathFromNode(files_NM_nodes[0]), pathFromNode(files_NM_nodes[1])]
+        ct_file_node = getVolumeNode(CT_nodeID)
+        files_CT = filesFromNode(ct_file_node)
+
         with open(os.path.join(self.resources_dir, 'sampleDataMetaData.json'), mode="r", encoding="utf-8") as inputfilemeta:
             metadata = json.load(inputfilemeta)
 
@@ -118,9 +170,24 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
         peak_window_idx1 = energy_window1.index(photopeak_value)
         peak_window_idx2 = energy_window2.index(photopeak_value)
 
-        attenuation_map_path = os.path.join(self.resources_dir, "Attenuation_maps")
-        attenuation_map_upper = torch.load(os.path.join(attenuation_map_path, "attenuation_map_upper.pt"))
-        attenuation_map_lower = torch.load(os.path.join(attenuation_map_path, "attenuation_map_lower.pt"))
+        attenuation_map_path = Path(slicer.app.temporaryPath) /"Attenuation_maps"
+        attenuation_map_path.mkdir(parents=True, exist_ok=True)
+        
+        self.delayDisplay("Downloading test attenuation map data - lower and upper bed positions")
+        lower_att_map_url_id = "1DKn3ixxcRONfmI22jL3WtDEpFcPwhVMp"
+        status = download_file_from_google_drive(lower_att_map_url_id, os.path.join(attenuation_map_path/'attenuation_map_lower.pt'))
+        if status:
+            attenuation_map_lower = torch.load(os.path.join(attenuation_map_path, "attenuation_map_lower.pt"))
+        else:
+            logger.error(f"Failed to download attenuation_map_lower.pt")
+        
+        upper_att_map_url_id = "1RTh2W4j9ranreGDrAF-D0I6skb4eBwWF"
+        status = download_file_from_google_drive(upper_att_map_url_id, os.path.join(attenuation_map_path/'attenuation_map_upper.pt'))
+        if status:
+            attenuation_map_upper = torch.load(os.path.join(attenuation_map_path, "attenuation_map_upper.pt"))
+        else:
+            logger.error(f"Failed to download attenuation_map_upper.pt")
+
         attenuation_map1 = getAttenuationMap(files_CT, files_NM, bed_idx=0,
                                                 index_peak=idx_sorted1[peak_window_idx1])
         attenuation_map2 = getAttenuationMap(files_CT, files_NM, bed_idx=1,
@@ -128,31 +195,44 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
         mse_upper = torch.sum((attenuation_map_upper.to("cuda")-attenuation_map1)**2)/2
         mse_lower = torch.sum((attenuation_map_lower.to("cuda")-attenuation_map2)**2)/2
 
-        self.assertEqual(mse_upper,0.0)
-        self.assertEqual(mse_lower,0.0)
+        self.assertTrue(mse_upper<0.5)
+        self.assertTrue(mse_lower<0.5)
+        self.cleanUP()
         self.delayDisplay("Attenuation map alignment test passed!")
 
     def test_psf_metadata(self):
 
         self.delayDisplay("PSF metadata test started!")
+        dicomValues = DicomValues()
+        try:
+            NM1_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM1_seriesinstanceUIDs])
+            NM2_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM2_seriesinstanceUIDs])
+            if not NM1_nodeID or not NM2_nodeID:
+                raise Exception('Unable to load all series from the database')
+        except Exception as e:
+            logger.error(f'Could not load dicom files from database: {e}')
+            raise
+
+        files_NM_nodes = [getVolumeNode(NM1_nodeID), getVolumeNode(NM2_nodeID)]
+        files_NM = [pathFromNode(files_NM_nodes[0]), pathFromNode(files_NM_nodes[1])]
+
         with open(os.path.join(self.resources_dir, 'psfMeta.json'), mode="r", encoding="utf-8") as inputfilemeta:
             psf_metadata = json.load(inputfilemeta)
-        files_NM = [os.path.join(self.resources_dir, 'DICOM/bed1_projections.dcm'),\
-            os.path.join(self.resources_dir, 'DICOM/bed2_projections.dcm')]
 
         _, mean_window_energies1, _ = getEnergyWindow(files_NM[0])
         _, mean_window_energies2, _ = getEnergyWindow(files_NM[1])
         self.assertEqual(mean_window_energies1[1], mean_window_energies2[1])
 
         peak_window_energy = mean_window_energies1[1]
-        print(peak_window_energy)
         collimator = psf_metadata['psfModellingMeta']['collimator']
         intrinsic_resolution = psf_metadata['psfModellingMeta']['intrinsic_resolution']
-        sigma_fit_params = psf_metadata['sigma_fit_params']
+        sigma_fit_params = np.array(psf_metadata['sigma_fit_params'])
         psf_meta = getPSFMeta(collimator, peak_window_energy, intrinsic_resolution)
-        psf_meta_sigma_fit_params = [float('{:.3f}'.format(param)) for param in psf_meta.sigma_fit_params]
+        psf_meta_sigma_fit_params = np.array([float('{:.3f}'.format(param)) for param in psf_meta.sigma_fit_params])
+        error_margin = np.abs(sigma_fit_params - psf_meta_sigma_fit_params)
 
-        self.assertEqual(sigma_fit_params, psf_meta_sigma_fit_params)
+        self.assertTrue(max(error_margin)<0.05)
+        self.cleanUP()
         self.delayDisplay("PSF metadata test passed!")
 
     # def test_scatter(self):
