@@ -60,8 +60,9 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
         self.setUp()
         # self.test_load_projection_data()
         # self.test_projection_metadata()
-        self.test_attenuation_map_alignment()
+        # self.test_attenuation_map_alignment()
         # self.test_psf_metadata()
+        self.test_scatter()
         self.cleanUP()
 
     def test_load_projection_data(self):
@@ -235,14 +236,97 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
         self.cleanUP()
         self.delayDisplay("PSF metadata test passed!")
 
-    # def test_scatter(self):
-    #     with open('./../Resources/sampleDataMetaData.json', mode="r", encoding="utf-8") as inputfilemeta:
-    #         metadata = json.load(inputfilemeta)
-    #     self.upper_window_idx = energy_window1.index(upper_window_value)
-    #     self.lower_window_idx = energy_window1.index(lower_window_value)
-    #     upper_window_value = metadata['scatterCorrectionMeta']['upper_window_value']
-    #     lower_window_value = metadata['scatterCorrectionMeta']['lower_window_value']
-    #     photopeak, scatter = get_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower, index_upper)
+    def test_scatter(self):
+        self.delayDisplay("Double and triple energy windows scatter data test started!")
+
+        dicomValues = DicomValues()
+        try:
+            NM1_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM1_seriesinstanceUIDs])
+            NM2_nodeID = DICOMUtils.loadSeriesByUID([dicomValues.NM2_seriesinstanceUIDs])
+            
+            if not NM1_nodeID or not NM2_nodeID:
+                raise Exception('Unable to load all series from the database')
+        except Exception as e:
+            logger.error(f'Could not load dicom files from database: {e}')
+            raise
+
+        files_NM_nodes = [getVolumeNode(NM1_nodeID), getVolumeNode(NM2_nodeID)]
+        files_NM = [pathFromNode(files_NM_nodes[0]), pathFromNode(files_NM_nodes[1])]
+
+        with open(os.path.join(self.resources_dir, 'sampleDataMetaData.json'), mode="r", encoding="utf-8") as inputfilemeta:
+            metadata = json.load(inputfilemeta)
+
+        photopeak_value = metadata['inputDataMeta']['photopeak_value']
+        upper_window_value = metadata['scatterCorrectionMeta']['upper_window_value']
+        lower_window_value = metadata['scatterCorrectionMeta']['lower_window_value']
+        energy_window1, _, idx_sorted1 = getEnergyWindow(files_NM[0])
+        energy_window2, _, idx_sorted2 = getEnergyWindow(files_NM[1])
+
+        photopeak_idx = idx_sorted1[energy_window1.index(photopeak_value)]
+        upper_window_idx1 = idx_sorted1[energy_window1.index(upper_window_value)]
+        lower_window_idx1 = idx_sorted1[energy_window1.index(lower_window_value)]
+
+        upper_window_idx2 = idx_sorted2[energy_window2.index(upper_window_value)]
+        lower_window_idx2 = idx_sorted2[energy_window2.index(lower_window_value)]
+
+        self.assertEqual(upper_window_idx1, upper_window_idx2)
+        self.assertEqual(lower_window_idx1, lower_window_idx2)
+
+        scatter_data_path = Path(slicer.app.temporaryPath) /"Test_scatter_data"
+        scatter_data_path.mkdir(parents=True, exist_ok=True)
+
+        _,upperbed_scatter_dew = get_photopeak_scatter(0, files_NM, photopeak_idx, lower_window_idx1, None)
+        _,lowerbed_scatter_dew = get_photopeak_scatter(1, files_NM, photopeak_idx, lower_window_idx1, None)
+        _,upperbed_scatter_tew = get_photopeak_scatter(0, files_NM, photopeak_idx, lower_window_idx1, upper_window_idx1)
+        _,lowerbed_scatter_tew = get_photopeak_scatter(1, files_NM, photopeak_idx, lower_window_idx1, upper_window_idx1)
+        
+        self.delayDisplay("Downloading test double energy window scatter data")
+        #Test double energy window scatter
+        upperbed_scatter_dew_url_id = "1tnT08bYKBVD-H1B8PLVXhligzjCdQCsc"
+        status = download_file_from_google_drive(upperbed_scatter_dew_url_id, os.path.join(scatter_data_path/'upperbed_scatter_dew.pt'))
+        if status:
+            test_upperbed_scatter_dew = torch.load(os.path.join(scatter_data_path, "upperbed_scatter_dew.pt"))
+        else:
+            logger.error(f"Failed to download upperbed_scatter_dew.pt")
+        
+        lowerbed_scatter_dew_url_id = "1RK-zB6BkPUAm8jZ6Ov1HHBhMGwfw933e"
+        status = download_file_from_google_drive(lowerbed_scatter_dew_url_id, os.path.join(scatter_data_path/'lowerbed_scatter_dew.pt'))
+        if status:
+            test_lowerbed_scatter_dew = torch.load(os.path.join(scatter_data_path, "lowerbed_scatter_dew.pt"))
+        else:
+            logger.error(f"Failed to download lowerbed_scatter_dew.pt")
+
+        mse_upper_dew = torch.sum((test_upperbed_scatter_dew.to("cuda")-upperbed_scatter_dew)**2)/2
+        mse_lower_dew = torch.sum((test_lowerbed_scatter_dew.to("cuda")-lowerbed_scatter_dew)**2)/2
+
+        self.assertTrue(mse_upper_dew<0.05)
+        self.assertTrue(mse_lower_dew<0.05)
+
+        self.delayDisplay("Downloading test triple energy window scatter data")
+        #Test triple energy window scatter
+        upperbed_scatter_tew_url_id = "1DM5Z8Q2-z5_Y8eYr5pwsdysIicMq8b_A"
+        status = download_file_from_google_drive(upperbed_scatter_tew_url_id, os.path.join(scatter_data_path/'upperbed_scatter_tew.pt'))
+        if status:
+            test_upperbed_scatter_tew = torch.load(os.path.join(scatter_data_path, "upperbed_scatter_tew.pt"))
+        else:
+            logger.error(f"Failed to download upperbed_scatter_tew.pt")
+        
+        lowerbed_scatter_tew_url_id = "18znooiTYrjFcbp2JrRndoj9_lfDeUfqM"
+        status = download_file_from_google_drive(lowerbed_scatter_tew_url_id, os.path.join(scatter_data_path/'lowerbed_scatter_tew.pt'))
+        if status:
+            test_lowerbed_scatter_tew = torch.load(os.path.join(scatter_data_path, "lowerbed_scatter_tew.pt"))
+        else:
+            logger.error(f"Failed to download lowerbed_scatter_tew.pt")
+
+        mse_upper_tew = torch.sum((test_upperbed_scatter_tew.to("cuda")-upperbed_scatter_tew)**2)/2
+        mse_lower_tew = torch.sum((test_lowerbed_scatter_tew.to("cuda")-lowerbed_scatter_tew)**2)/2
+
+        self.assertTrue(mse_upper_tew<0.05)
+        self.assertTrue(mse_lower_tew<0.05)
+
+        self.cleanUP()
+        self.delayDisplay("Double and triple energy windows scatter data test passed!")
+
 
     # def recon_algorithms:
     #     pass

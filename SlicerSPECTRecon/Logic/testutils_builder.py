@@ -7,9 +7,6 @@ import qt
 import ctk
 import zipfile
 from bs4 import BeautifulSoup
-import warnings
-from contextlib import contextmanager
-import re
 
 logger = logging.getLogger(__name__)
 DATABASE_INITIALIZED = False
@@ -26,6 +23,7 @@ class DicomValues:
         self.CT_studyInstanceUID = '1.2.840.113619.2.280.2.1.13122020104714148.2070446548'
         self.CT_seriesinstanceUID = '1.2.840.113619.2.55.3.168428554.503.1605786858.351'
         self.CT_modality = 'CT'
+
 
 def openDICOMDatabase(databaseName='SlicerSpectReconDB'):
     settings = qt.QSettings()
@@ -69,6 +67,7 @@ def openDICOMDatabase(databaseName='SlicerSpectReconDB'):
 
     logger.info(f"Database opened at {databaseFilePath}")
 
+
 def importDICOMFromURL(file_id, folder_name):
     
     dicomDir = Path(slicer.app.temporaryPath) /folder_name
@@ -89,15 +88,18 @@ def importDICOMFromURL(file_id, folder_name):
     indexer.waitForImportFinished()
     logger.info(f"Imported DICOM files from drive to database")
 
+
 def downloadAndImportNMFiles():
     file_id = "1bCz_hLgASAiQ38QrRlgrJ3lH_lOlqQb1"
     folder_name = "NM"
     importDICOMFromURL(file_id, folder_name)
 
+
 def downloadAndImportCTFiles():
     file_id = "1kbl4nqflovxOB0N9z8YrpmZHzTnPtnyu"
     folder_name = "CT"
     importDICOMFromURL(file_id, folder_name)
+
 
 def initDICOMDatabase():
     global DATABASE_INITIALIZED
@@ -132,6 +134,7 @@ def initDICOMDatabase():
 
     DATABASE_INITIALIZED = True
 
+
 def download_file_from_google_drive(file_id, destination):
     URL = "https://drive.google.com/uc?export=download"
     session = requests.Session()
@@ -156,12 +159,14 @@ def download_file_from_google_drive(file_id, destination):
             save_response_content(response, destination)
             return 1
 
+
 def get_confirm_token(response_text):
     soup = BeautifulSoup(response_text, 'html.parser')
     for input_tag in soup.find_all('input'):
         if input_tag.get('name') == 'confirm':
             return input_tag.get('value')
     return None
+
 
 def get_confirm_form_params(response_text, token):
     soup = BeautifulSoup(response_text, 'html.parser')
@@ -178,6 +183,7 @@ def get_confirm_form_params(response_text, token):
                 action_url = 'https://drive.google.com' + action_url
             return action_url, confirm_params
     return None, None
+
 
 def save_response_content(response, destination):
     CHUNK_SIZE = 32768
