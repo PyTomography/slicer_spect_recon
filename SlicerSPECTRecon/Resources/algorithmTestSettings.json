@@ -2,40 +2,39 @@
     "osem":
     {
         "algorithm":"OSEM",
-        "iterations":4,
+        "iterations":1,
         "subsets":8
     },
     "bsrem":
     {
         "algorithm":"BSREM",
-        "iterations":4,
-        "subsets":8,
-        "prior":"RelativeDifferencePenalty"
+        "iterations":1,
+        "subsets":8
     },
     "osmaposl":
     {
         "algorithm":"OSMAPOSL",
-        "iterations":4,
-        "subsets":8,
-        "prior":"RelativeDifferencePenalty"
+        "iterations":1,
+        "subsets":8
     },
     "prior_type":
     {
-        "relativeDifferencePenalty": {
-            "beta":1.0,
-            "gamma":1.0
+        "relativeDifferencePenalty": 
+        {
+            "beta":0.1,
+            "gamma":0.1
         },
         "logCosh":
         {
-            "beta":1.0,
-            "delta":1.0
+            "beta":0.1,
+            "delta":0.1
         },
         "quadratic":
         {
-            "beta":1.0,
-            "delta":1.0
+            "beta":0.1,
+            "delta":0.1
         }
     },
-    "use_anatomical_information": "False",
+    "use_anatomical_information": "True",
     "nearest_neighbours":12
 }

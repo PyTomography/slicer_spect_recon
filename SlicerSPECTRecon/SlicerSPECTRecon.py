@@ -13,7 +13,7 @@ from slicer.parameterNodeWrapper import (
 )
 from slicer import vtkMRMLScalarVolumeNode
 from DICOMLib import DICOMUtils
-slicer.util.pip_install("--ignore-requires-python pytomography==3.1.4")
+slicer.util.pip_install("--ignore-requires-python pytomography==3.2.2")
 slicer.util.pip_install("beautifulsoup4")
 import pytomography
 print(pytomography.__version__)
@@ -335,7 +335,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         elif self.ui.spect_scatter_combobox.currentText=='Triple Energy Window':
             upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex
             lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
-        logging.info("Initiating Reconstruction...")
         recon_array, fileNMpaths= self.logic.reconstruct( 
             files_NM = get_filesNM_from_NMNodes(self._projectionList),
             attenuation_toggle = self.ui.attenuation_toggle.checked,
