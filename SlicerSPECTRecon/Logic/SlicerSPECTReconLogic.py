@@ -60,7 +60,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
 
     def reconstruct(
         self,
-        NM_nodes,
+        files_NM,
         attenuation_toggle,
         ct_file,
         psf_toggle,
@@ -79,9 +79,6 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         iter,
         subset
     ): 
-        
-        # Get data/metadata
-        files_NM = get_filesNM_from_NMNodes(NM_nodes)
         _ , mean_window_energies, idx_sorted = getEnergyWindow(files_NM[0])
         index_peak = idx_sorted[peak_window_idx]
         index_upper = idx_sorted[upper_window_idx] if upper_window_idx is not None else None
@@ -109,11 +106,11 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             likelihood = poissonLogLikelihood(system_matrix, photopeak, scatter)
             # Select prior
             prior = selectPrior(prior_type, prior_beta, prior_delta, prior_gamma, 
-                                files_NM, bed_idx, N_prior_anatomy_nearest_neighbours, 
+                                files_NM, bed_idx, index_peak, N_prior_anatomy_nearest_neighbours, 
                                 prior_anatomy_image_file)
             # Build algorithm
             reconstruction_algorithm = selectAlgorithm(algorithm, likelihood, prior)
-            # Reconstruct
+            # Reconstruct          
             reconstructed_object = reconstruction_algorithm(n_iters=iter, n_subsets=subset)
             recon_array.append(reconstructed_object)
         return recon_array, files_NM
@@ -132,7 +129,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             recon_stitched = recon_array[0]
             fileNMpath_save = fileNMpaths[0]
         reconstructedDCMInstances = dicom.save_dcm(save_path = None, object = recon_stitched, 
-                                                   file_NM = fileNMpath_save, recon_name = 'slicer_recon', return_ds =True)
+                                                   file_NM = fileNMpath_save, recon_name = 'slicer_recon', return_ds = True)
         return reconstructedDCMInstances
         
     def saveVolumeInTempDB(self, reconstructedDCMInstances, outputVolumeNode):
@@ -145,7 +142,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
 
     def getAndDisplayVolume(self, temp_dir, outputVolumeNode):
         loadedNodeIDs = loadFromTempDB(temp_dir)
-        volumeNode = getVolumeNode(loadedNodeIDs[0])
+        volumeNode = getVolumeNode(loadedNodeIDs)
         displayVolumeInViewer(volumeNode, outputVolumeNode)
         removeNode(volumeNode, temp_dir)
-        print("Reconstruction successful")
+        logging.info("Reconstruction successful")

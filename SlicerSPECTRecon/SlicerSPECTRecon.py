@@ -13,13 +13,15 @@ from slicer.parameterNodeWrapper import (
 )
 from slicer import vtkMRMLScalarVolumeNode
 from DICOMLib import DICOMUtils
-slicer.util.pip_install("--ignore-requires-python pytomography==3.1.4")
+slicer.util.pip_install("--ignore-requires-python pytomography==3.2.2")
+slicer.util.pip_install("beautifulsoup4")
 import pytomography
 print(pytomography.__version__)
 print("I'm here")
 import re
 import importlib
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
+from Logic.SlicerSPECTReconTest import SlicerSPECTReconTest
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
@@ -246,7 +248,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         if self._updatingGUIFromParameterNode:
             return
-        print('update')
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
         inputVolume1 = self._parameterNode.GetNodeReference("InputVolume1")
@@ -260,9 +261,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
         self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
         last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
-        print(f'Photopeak: {photopeak_value}')
-        print(f'Photopeak Index: {photopeak_index}')
-        print(photopeak_index)
         # Attenuation Stuff
         # Scatter Stuff
         if self.ui.scatter_toggle.checked:
@@ -335,7 +333,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex
             lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
         recon_array, fileNMpaths= self.logic.reconstruct( 
-            NM_nodes = self._projectionList,
+            files_NM = get_filesNM_from_NMNodes(self._projectionList),
             attenuation_toggle = self.ui.attenuation_toggle.checked,
             ct_file = self.ui.attenuationdata.currentNode(),
             psf_toggle = self.ui.psf_toggle.checked,
