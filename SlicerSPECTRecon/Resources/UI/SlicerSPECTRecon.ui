@@ -1330,47 +1330,6 @@
                   <string/>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_21">
-                  <item row="2" column="0">
-                   <layout class="QHBoxLayout" name="simind_randomseed_horizontalLayout">
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <layout class="QVBoxLayout" name="verticalLayout_21">
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QLabel" name="simind_randomseed_label">
-                        <property name="text">
-                         <string>Random Seed</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </item>
-                    <item>
-                     <layout class="QVBoxLayout" name="verticalLayout_23">
-                      <item>
-                       <widget class="QSpinBox" name="simind_randomseed_spinBox"/>
-                      </item>
-                     </layout>
-                    </item>
-                   </layout>
-                  </item>
-                  <item row="1" column="0">
-                   <widget class="QCheckBox" name="simind_poisson_checkBox">
-                    <property name="text">
-                     <string>Include poisson noise</string>
-                    </property>
-                    <property name="checked">
-                     <bool>true</bool>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="0" column="0">
                    <layout class="QHBoxLayout" name="horizontalLayout_15">
                     <property name="rightMargin">
@@ -1405,6 +1364,13 @@
                         </property>
                        </widget>
                       </item>
+                      <item>
+                       <widget class="QLabel" name="simind_randomseed_label">
+                        <property name="text">
+                         <string>Random Seed</string>
+                        </property>
+                       </widget>
+                      </item>
                      </layout>
                     </item>
                     <item>
@@ -1435,6 +1401,9 @@
                          <double>100000000000000.000000000000000</double>
                         </property>
                        </widget>
+                      </item>
+                      <item>
+                       <widget class="QSpinBox" name="simind_randomseed_spinBox"/>
                       </item>
                      </layout>
                     </item>

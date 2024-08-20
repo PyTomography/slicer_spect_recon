@@ -182,7 +182,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.simind_tperproj_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
         self.ui.simind_scale_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
         self.ui.simind_randomseed_spinBox.connect('valueChanged(int)', self.changeSIMINDFolderStudyDescription)
-        self.ui.simind_poisson_checkBox.connect('toggled(bool)', self.hideShowItems)
         self.ui.simind2dicom_groupBox.setVisible(False)
         for i in range(2,10):
             getattr(self.ui, f'PathLineEdit_w{i}').setVisible(False)
@@ -281,8 +280,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.priorAnatomicalGroupBox.setVisible(self.ui.usePriorAnatomicalCheckBox.checked)
         # Data converters
         self.ui.simind2dicom_groupBox.setVisible(self.ui.data_converter_comboBox.currentText=='SIMIND to DICOM')
-        self.ui.simind_randomseed_label.setVisible(self.ui.simind_poisson_checkBox.checked)
-        self.ui.simind_randomseed_spinBox.setVisible(self.ui.simind_poisson_checkBox.checked)
         n_windows = self.ui.simind_nenergy_spinBox.value
         for i in range(1,10):
             getattr(self.ui, f'PathLineEdit_w{i}').setVisible(i<=n_windows)
@@ -412,10 +409,10 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         headerfiles = []
         time_per_projection = self.ui.simind_tperproj_doubleSpinBox.value
         scale_factor = self.ui.simind_scale_doubleSpinBox.value
+        random_seed = self.ui.simind_randomseed_spinBox.value
         n_windows = self.ui.simind_nenergy_spinBox.value
         for i in range(1,n_windows+1):
             headerfiles.append([getattr(self.ui, f'PathLineEdit_w{i}').currentPath])
-        add_noise = self.ui.simind_poisson_checkBox.checked
         save_path = os.path.join(
             self.ui.simind_projection_folder_PathLineEdit.currentPath,
             self.ui.simind_projections_foldername_lineEdit.text
@@ -426,7 +423,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             headerfiles,
             time_per_projection, 
             scale_factor, 
-            add_noise, 
+            random_seed, 
             save_path,
             patient_name,
             study_description
@@ -452,6 +449,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         name = re.sub(r'\s+', '_', self.ui.simind_patientname_lineEdit.text)
         time = self.ui.simind_tperproj_doubleSpinBox.value
         scale = self.ui.simind_scale_doubleSpinBox.value
-        random_seed = self.ui.simind_randomseed_spinBox.value if self.ui.simind_poisson_checkBox.checked else 'None'
+        random_seed = self.ui.simind_randomseed_spinBox.value
         self.ui.simind_projections_foldername_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'
         self.ui.simind_studydescription_lineEdit.text = f'{name}_time{time:.0f}_scale{scale:.0f}_seed{random_seed}'

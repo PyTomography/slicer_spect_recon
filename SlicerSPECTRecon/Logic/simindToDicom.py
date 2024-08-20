@@ -16,7 +16,7 @@ def simind2DICOMProjections(
     headerfiles, 
     time_per_projection, 
     scale, 
-    add_noise, 
+    random_seed, 
     save_path, 
     patient_name, 
     study_description
@@ -120,6 +120,7 @@ def simind2DICOMProjections(
     projections = simind.get_projections(headerfiles)
     if Nenergy==1:
         projections = projections.unsqueeze(0) # first dimension removed by default in pytomography
+    np.random.seed(random_seed)
     projections_realization = np.random.poisson(projections.cpu().numpy()*time_per_projection*scale)
     projections_realization = np.transpose(projections_realization, (0,1,3,2))[:,:,::-1]
     ds.PixelData = projections_realization.astype(np.uint16).tobytes()
