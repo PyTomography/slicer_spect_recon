@@ -25,14 +25,12 @@ from Logic.SlicerSPECTReconTest import SlicerSPECTReconTest
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
-from Logic.reconstructSimindTest import reconstructSimindTest
 
 
 __submoduleNames__ = [
     "SlicerSPECTReconLogic",
     "SlicerSPECTReconTest",
-    "vtkkmrmlutils",
-    "reconstructSimindTest"
+    "vtkkmrmlutils"
 ]
 
 __package__ = "SlicerSPECTRecon"
@@ -65,51 +63,6 @@ See more information in <a href="https://github.com/organization/projectname#pyt
 This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
 and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
 """)
-        
-        try:
-            slicer.selfTests
-        except AttributeError:
-            slicer.selfTests = {}
-        slicer.selfTests["SlicerSPECTRecon"] = self.runTest
-
-    def runTest(self, msec=100, **kwargs):
-        # from coverage import Coverage
-
-        # # Setup test execution recording. An sqlite database file will be created here
-        # cov = Coverage(data_file=str(self.script_path / "Resources" / "coverage.db"))
-        # cov.exclude("from")
-        # cov.exclude("import")
-        # cov.exclude("@(abc\.)?abstractmethod")
-        # # Record what lines of code are executed during self test run
-        # cov.start()
-        logging.info("\n******* Starting Tests of SlicerSPECTRecon **********\n")
-
-        # test reconstructSimindTest
-        testCase = reconstructSimindTest()
-        testCase.messageDelay = msec
-        testCase.runTest(**kwargs)
-
-
-        # test SlicerSPECTReconTest
-        # name of the test case class is expected to be <ModuleName>Test
-        module = importlib.import_module(self.__module__)
-        className = self.moduleName + "Test"
-        try:
-            TestCaseClass = getattr(module, className)
-        except AttributeError:
-            # Treat missing test case class as a failure; provide useful error message
-            raise AssertionError(
-                f"Test case class not found: {self.__module__}.{className} "
-            )
-        testCase = TestCaseClass()
-        # testCase.messageDelay = msec
-        # testCase.runTest(**kwargs)
-
-
-        self.logger.info("\n******* All tests passed **********\n")
-
-
-
 
 class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """Uses ScriptedLoadableModuleWidget base class, available at:
@@ -230,6 +183,8 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
         """
+        if inputParameterNode:
+            self.logic.setDefaultParameters(inputParameterNode)
         # Unobserve previously selected parameter node and add an observer to the newly selected.
         # Changes of parameter node are observed so that whenever parameters are changed by a script or any other module
         # those are reflected immediately in the GUI.
