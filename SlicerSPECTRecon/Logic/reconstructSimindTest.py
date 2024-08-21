@@ -57,7 +57,6 @@ class reconstructSimindTest(ScriptedLoadableModuleTest):
 
         time_per_projection = 15.0
         scale = 1000.00
-        add_noise = True
         random_seed = 0
         patient_name = "lu177_jaszak_test"
         study_description = f'{patient_name}_time{time_per_projection:.0f}_scale{scale:.0f}_seed{random_seed}'
@@ -83,7 +82,7 @@ class reconstructSimindTest(ScriptedLoadableModuleTest):
         headerfile_3 = [(simind_data_path/"208keV_ME_jaszak"/"tot_w3.h00").as_posix()]
         headerfiles = [headerfile_1, headerfile_2, headerfile_3]
         print(headerfiles)
-        simind2DICOMProjections(headerfiles, time_per_projection, scale, add_noise, save_path, patient_name, study_description)
+        simind2DICOMProjections(headerfiles, time_per_projection, scale, random_seed, save_path, patient_name, study_description)
         if save_path.exists() and save_path.is_dir():
             file = next(save_path.iterdir())
             # file_name = file.name
@@ -95,7 +94,7 @@ class reconstructSimindTest(ScriptedLoadableModuleTest):
         dicom_data_path = Path(slicer.app.temporaryPath) /"jaszak_phantom_dicom_data"
         dicom_data_path.mkdir(parents=True, exist_ok=True)
         
-        file_id = "1PJ1mUsSmKkzKBkUXHJq776jE4TW48tyY"
+        file_id = "1I9wssohN-BdH9b9lPfGwmgSD5mT5Pg20"
         zip_path = dicom_data_path / 'test_jaszak_dicom.zip'
         status = download_file_from_google_drive(file_id, zip_path)
         if status:
@@ -116,7 +115,7 @@ class reconstructSimindTest(ScriptedLoadableModuleTest):
         print(mse_error)
         self.assertTrue(mse_error<0.05)
         # self.cleanUP()
-        self.delayDisplay("Load projection data test passed!")
+        self.delayDisplay("Simind conversion to dicom test passed!")
         
 
 
