@@ -17,7 +17,6 @@ slicer.util.pip_install("--ignore-requires-python pytomography==3.2.2")
 slicer.util.pip_install("beautifulsoup4")
 import pytomography
 print(pytomography.__version__)
-print("I'm here")
 import re
 import importlib
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
@@ -25,18 +24,29 @@ from Logic.SlicerSPECTReconTest import SlicerSPECTReconTest
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
+from Logic.reconstructSimindTest import reconstructSimindTest
 
 
 __submoduleNames__ = [
     "SlicerSPECTReconLogic",
     "SlicerSPECTReconTest",
-    "vtkkmrmlutils"
+    "vtkkmrmlutils",
+    "reconstructSimindTest",
+    "testutils_builder",
+    "transforms",
+    "volumeutils",
+    "systemMatrix",
+    "simindToDicom",
+    "priors",
+    "algorithms",
+    "getmetadatautils",
+    "likelihood"
 ]
 
 __package__ = "SlicerSPECTRecon"
 mod = importlib.import_module("Logic", __name__)
 importlib.reload(mod)
-__all__ = ["SlicerSPECTRecon", "SlicerSPECTRecon", "SlicerSPECTReconLogic", "SlicerSPECTReconTest"]
+__all__ = ["SlicerSPECTRecon", "SlicerSPECTReconWidget", "SlicerSPECTReconLogic", "SlicerSPECTReconTest"]
 
 
 
@@ -47,11 +57,16 @@ class SlicerSPECTRecon(ScriptedLoadableModule):
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = _("SlicerSPECTRecon")  # TODO: make this more human readable by adding spaces
-        # TODO: set categories (folders where the module shows up in the module selector)
+        # TODO: make this more human readable by adding spaces
+        self.parent.title = _("SlicerSPECTRecon")
         self.parent.categories = ["Tomographic Reconstruction"]
-        self.parent.dependencies = []  # TODO: add here list of module names that this module requires
-        self.parent.contributors = ["Obed K. Dzikunu (QURIT), Luke Polson (QURIT), Maziar Sabouri (QURIT), Shadab Ahamed (QURIT)"]  # TODO: replace with "Firstname Lastname (Organization)"
+        self.parent.dependencies = []
+        self.parent.contributors = [
+            "Obed Korshie Dzikunu (QURIT, Canada)", 
+            "Luke Polson (QURIT, Canada)", 
+            "Maziar Sabouri (QURIT, Canada)", 
+            "Shadab Ahamed (QURIT, Canada)"
+            ]
         # TODO: update with short description of the module and a link to online module documentation
         # _() function marks text as translatable to other languages
         self.parent.helpText = _("""
@@ -63,6 +78,41 @@ See more information in <a href="https://github.com/organization/projectname#pyt
 This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
 and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
 """)
+        try:
+            slicer.selfTests
+        except AttributeError:
+            slicer.selfTests = {}
+        slicer.selfTests["SlicerSPECTReconTest"] = self.runTest
+
+    def runTest(self, msec=100, **kwargs):
+            """
+            :param msec: delay to associate with :func:`ScriptedLoadableModuleTest.delayDisplay()`.
+            """
+            logging.info("\n******* Starting Tests of SlicerSPECTRecon **********\n")
+            # test reconstructSimind
+            testCase = reconstructSimindTest()
+            testCase.messageDelay = msec
+            testCase.runTest(**kwargs)
+            # test SlicerSPECTReconTest
+            # name of the test case class is expected to be <ModuleName>Test
+            module = importlib.import_module(self.__module__)
+            className = self.moduleName + "Test"
+            try:
+                TestCaseClass = getattr(module, className)
+            except AttributeError:
+                # Treat missing test case class as a failure; provide useful error message
+                raise AssertionError(
+                    f"Test case class not found: {self.__module__}.{className} "
+                )
+            testCase = TestCaseClass()
+            testCase.messageDelay = msec
+            testCase.runTest(**kwargs)
+
+            logging.info("\n******* All tests passed **********\n")
+
+    # -------------------------------------------------
+    # ------------ SlicerSPECTReconWidget -------------
+    # -------------------------------------------------
 
 class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """Uses ScriptedLoadableModuleWidget base class, available at:
@@ -97,8 +147,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # (in the selected parameter node).
         self.setupConnections()
         # initialize for loading data in case
-
-        
 
     def setupConnections(self):
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
@@ -163,7 +211,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Parameter node will be reset, do not use it anymore
         self.setParameterNode(None)
         
-
     def onSceneEndClose(self, caller, event) -> None:
         """Called just after the scene is closed."""
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
@@ -183,8 +230,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
         """
-        if inputParameterNode:
-            self.logic.setDefaultParameters(inputParameterNode)
         # Unobserve previously selected parameter node and add an observer to the newly selected.
         # Changes of parameter node are observed so that whenever parameters are changed by a script or any other module
         # those are reflected immediately in the GUI.
@@ -195,7 +240,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
             
     def hideShowItems(self, called=None, event=None):
-        print(self.ui.attenuation_toggle.checked)
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
@@ -240,7 +284,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             getattr(self.ui, f'PathLineEdit_w{i}').setVisible(i<=n_windows)
             getattr(self.ui, f'label_w{i}').setVisible(i<=n_windows)
         
-    
     def updateGUIFromParameterNode(self, caller=None, event=None):
         """
         This method is called whenever parameter node is changed.
@@ -276,7 +319,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 last_text[self.ui.spect_lowerwindow_combobox.objectName] = self.ui.spect_lowerwindow_combobox.currentText
         if inputVolume1:
             self.ui.outputVolumeSelector.baseName = inputVolume1.GetName() + " reconstructed"
-        
         # All the GUI updates are done
         self._updatingGUIFromParameterNode = False
 
@@ -399,7 +441,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             study_description
         )
         
-
     def changeSIMINDFolderStudyDescription(self, called=None, event=None):
         name = re.sub(r'\s+', '_', self.ui.simind_patientname_lineEdit.text)
         time = self.ui.simind_tperproj_doubleSpinBox.value

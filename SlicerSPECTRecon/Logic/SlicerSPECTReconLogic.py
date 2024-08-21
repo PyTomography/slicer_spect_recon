@@ -6,8 +6,6 @@ from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
 from DICOMLib import DICOMUtils
 import pytomography
-print(pytomography.__version__)
-print("I'm here")
 from pytomography.io.SPECT import dicom
 import numpy as np
 import pydicom
@@ -38,25 +36,6 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         """
         ScriptedLoadableModuleLogic.__init__(self)
 
-
-    def setDefaultParameters(self, parameterNode):
-        """
-        Initialize parameter node with default settings.
-        """
-        if not parameterNode.GetParameter("Collimator"):
-            parameterNode.SetParameter("Collimator", "Choose Collimator")
-        if not parameterNode.GetParameter("Scatter"):
-            parameterNode.SetParameter("Scatter", "Select Scatter Window")
-        if not parameterNode.GetParameter("UpperWindow"):
-            parameterNode.SetParameter("UpperWindow", "Select Upper Window")
-        if not parameterNode.GetParameter("LowerWindow"):
-            parameterNode.SetParameter("LowerWindow", "Select Lower Window")
-        if not parameterNode.GetParameter("Algorithm"):
-            parameterNode.SetParameter("Algorithm", "Select Algorithm")
-        if not parameterNode.GetParameter("Iterations"):
-            parameterNode.SetParameter("Iterations", "0")
-        if not parameterNode.GetParameter("Subsets"):
-            parameterNode.SetParameter("Subsets", "0")
 
     def reconstruct(
         self,

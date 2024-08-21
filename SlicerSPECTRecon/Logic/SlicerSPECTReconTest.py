@@ -6,8 +6,6 @@ from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
 from DICOMLib import DICOMUtils
 import pytomography
-print(pytomography.__version__)
-print("I'm here")
 from pytomography.io.SPECT import dicom
 import numpy as np
 import pydicom
@@ -674,100 +672,3 @@ class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
             self.assertTrue(quadratic_mse_error<0.05)
             self.delayDisplay("OSMAPOSL Quadratic test passed!")      
         self.cleanUP()
-           
-
-        
-        
-
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-    # def test_slicerspectrecon1(self):
-    #     """Ideally you should have several levels of tests.  At the lowest level
-    #     tests should exercise the functionality of the logic with different inputs
-    #     (both valid and invalid).  At higher levels your tests should emulate the
-    #     way the user would interact with your code and confirm that it still works
-    #     the way you intended.
-    #     One of the most important features of the tests is that it should alert other
-    #     developers when their changes will have an impact on the behavior of your
-    #     module.  For example, if a developer removes a feature that you depend on,
-    #     your test should break so they know that the feature is needed.
-    #     """
-
-
-
-    #     self.delayDisplay("Starting the test")
-
-    #     logic = SlicerSPECTReconLogic()
-    #     self.delayDisplay("Test passed")
-    #     files_NM = [os.path.join('./../Resources/DICOM', 'bed1_projections.dcm'),\
-    #         os.path.join('./../Resources/DICOM', 'bed2_projections.dcm')]
-    #     path_CT = os.path.join('./../Resources/DICOM', 'CT')
-    #     files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
-
-    #     with open('./../Resources/sampleDataMetaData.json', mode="r", encoding="utf-8") as inputfilemeta:
-    #         metadata = json.load(inputfilemeta)
-    #     with open('./../Resources/algorithmTestSettings.json', mode="r", encoding="utf-8") as settingsfile:
-    #         algorithm_settings = json.load(settingsfile) 
-
-    #     photopeak_value = metadata['inputDataMeta']['photopeak_value']
-    #     upper_window_value = metadata['scatterCorrectionMeta']['upper_window_value']
-    #     lower_window_value = metadata['scatterCorrectionMeta']['lower_window_value']
-    #     collimator = metadata['psfModellingMeta']['collimator']
-    #     intrinsic_resolution = metadata['psfModellingMeta']['intrinsic_resolution']
-    #     psf_toggle = json.loads(metadata['toggle']['psf_toggle'].lower())
-    #     attenuation_toggle = json.loads(metadata['toggle']['attenuation_toggle'].lower())
-
-    #     energy_window,_,_ = getEnergyWindow(files_NM[0])
-    #     peak_window_idx = energy_window.index(photopeak_value)
-    #     upper_window_idx = energy_window.index(upper_window_value)
-    #     lower_window_idx = energy_window.index(lower_window_value)
-
-    #     test_bsrem = False
-    #     test_osmaposl = False
-
-    #     if test_bsrem:
-    #         algorithm, iter, subset, prior_type,\
-    #         prior_beta, prior_delta, prior_gamma,\
-    #         use_anatomical_information, N_prior_anatomy_nearest_neighbours = self.test_bsrem(algorithm_settings)
-    #     elif test_osmaposl:
-    #         algorithm, iter, subset, prior_type,\
-    #         prior_beta, prior_delta, prior_gamma,\
-    #         use_anatomical_information, N_prior_anatomy_nearest_neighbours = self.test_osmaposl(algorithm_settings)
-    #     else:
-    #         algorithm, iter, subset = self.test_osem(algorithm_settings)
-    #     if use_anatomical_information:
-    #         pass
-    #     #TODO: Get sample image file
-    #     prior_anatomy_image_file=None
-    #     recon_array, fileNMpaths = logic.reconstruct(files_NM, attenuation_toggle, files_CT, psf_toggle, 
-    #                                                 collimator, intrinsic_resolution,peak_window_idx, 
-    #                                                 upper_window_idx, lower_window_idx, algorithm, prior_type, 
-    #                                                 prior_beta, prior_delta, prior_gamma, prior_anatomy_image_file,
-    #                                                 N_prior_anatomy_nearest_neighbours, iter, subset)
-    #     reconstructedDCMInstances = self.logic.stitchMultibed(recon_array, fileNMpaths)
-    #     if reconstructedDCMInstances:
-    #         self.delayDisplay("Test passed")
-
-    # def simind_to_dicom_conversionTest(self):
-    #     pass

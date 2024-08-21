@@ -6,8 +6,6 @@ from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
 from DICOMLib import DICOMUtils
 import pytomography
-print(pytomography.__version__)
-print("I'm here")
 from pytomography.io.SPECT import dicom
 import numpy as np
 import pydicom

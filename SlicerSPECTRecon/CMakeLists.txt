@@ -15,15 +15,13 @@ set(MODULE_PYTHON_SCRIPTS
   Logic/transforms.py
   Logic/volumeutils.py
   Logic/vtkkmrmlutils.py
+  Logic/reconstructSimindTest.py
+  Logic/testutils_builder.py
   )
 
 set(MODULE_PYTHON_RESOURCES
   Resources/Icons/${MODULE_NAME}.png
   Resources/UI/${MODULE_NAME}.ui
-  Resources/Attenuation_maps/attenuation_map_lower.pt
-  Resources/Attenuation_maps/attenuation_map_upper.pt
-  Resources/DICOM/bed1_projections.dcm
-  Resources/DICOM/bed2_projections.dcm
   Resources/algorithmTestSettings.json
   Resources/psfMeta.json
   Resources/sampleDataMetaData.json
