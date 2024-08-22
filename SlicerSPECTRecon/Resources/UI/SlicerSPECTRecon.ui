@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>514</width>
-    <height>2151</height>
+    <height>2199</height>
    </rect>
   </property>
   <layout class="QGridLayout" name="gridLayout_5">
@@ -20,6 +20,101 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QGridLayout" name="gridLayout_9">
+      <item row="5" column="0">
+       <widget class="ctkCollapsibleButton" name="CollapsibleButton_3">
+        <property name="text">
+         <string>Likelihoods</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_8">
+         <item row="0" column="0">
+          <widget class="QRadioButton" name="radioButton">
+           <property name="text">
+            <string>Poisson Log</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <property name="autoExclusive">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="ctkCollapsibleButton" name="CollapsibleButton">
+        <property name="text">
+         <string>Output</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Output Volume</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="qMRMLNodeComboBox" name="outputVolumeSelector">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="toolTip">
+                <string>This will store the reconstructed volume</string>
+               </property>
+               <property name="nodeTypes">
+                <stringlist>
+                 <string>vtkMRMLScalarVolumeNode</string>
+                </stringlist>
+               </property>
+               <property name="showChildNodeTypes">
+                <bool>false</bool>
+               </property>
+               <property name="hideChildNodeTypes">
+                <stringlist notr="true"/>
+               </property>
+               <property name="baseName">
+                <string>output</string>
+               </property>
+               <property name="noneEnabled">
+                <bool>true</bool>
+               </property>
+               <property name="editEnabled">
+                <bool>true</bool>
+               </property>
+               <property name="renameEnabled">
+                <bool>true</bool>
+               </property>
+               <property name="interactionNodeSingletonTag">
+                <string notr="true"/>
+               </property>
+               <property name="noneDisplay">
+                <string>Create new volume on Reconstruct button pressed</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="osem_reconstruct_pushbutton">
+             <property name="text">
+              <string>Reconstruct</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
       <item row="4" column="0">
        <widget class="ctkCollapsibleButton" name="systemmodel_collapsebutton">
         <property name="enabled">
@@ -716,101 +811,6 @@
         </layout>
        </widget>
       </item>
-      <item row="7" column="0">
-       <widget class="ctkCollapsibleButton" name="CollapsibleButton">
-        <property name="text">
-         <string>Output</string>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_3">
-         <item row="0" column="0">
-          <layout class="QVBoxLayout" name="verticalLayout_3">
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout">
-             <item>
-              <widget class="QLabel" name="label">
-               <property name="text">
-                <string>Output Volume</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="qMRMLNodeComboBox" name="outputVolumeSelector">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="toolTip">
-                <string>This will store the reconstructed volume</string>
-               </property>
-               <property name="nodeTypes">
-                <stringlist>
-                 <string>vtkMRMLScalarVolumeNode</string>
-                </stringlist>
-               </property>
-               <property name="showChildNodeTypes">
-                <bool>false</bool>
-               </property>
-               <property name="hideChildNodeTypes">
-                <stringlist notr="true"/>
-               </property>
-               <property name="baseName">
-                <string>output</string>
-               </property>
-               <property name="noneEnabled">
-                <bool>true</bool>
-               </property>
-               <property name="editEnabled">
-                <bool>true</bool>
-               </property>
-               <property name="renameEnabled">
-                <bool>true</bool>
-               </property>
-               <property name="interactionNodeSingletonTag">
-                <string notr="true"/>
-               </property>
-               <property name="noneDisplay">
-                <string>Create new volume on Reconstruct button pressed</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <widget class="QPushButton" name="osem_reconstruct_pushbutton">
-             <property name="text">
-              <string>Reconstruct</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="ctkCollapsibleButton" name="CollapsibleButton_3">
-        <property name="text">
-         <string>Likelihoods</string>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_8">
-         <item row="0" column="0">
-          <widget class="QRadioButton" name="radioButton">
-           <property name="text">
-            <string>Poisson Log</string>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-           <property name="autoExclusive">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
       <item row="1" column="0">
        <widget class="ctkCollapsibleButton" name="InputData">
         <property name="text">
@@ -896,319 +896,6 @@
             </layout>
            </item>
           </layout>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="ctkCollapsibleButton" name="reconstructionalgorithm_collapsiblebutton">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Reconstruction Algorithms</string>
-        </property>
-        <property name="collapsed">
-         <bool>false</bool>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_7">
-         <item row="0" column="0">
-          <layout class="QHBoxLayout" name="horizontalLayout_25">
-           <item>
-            <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>Reconstruction Algorithm</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="algorithm_selector_combobox">
-             <item>
-              <property name="text">
-               <string>OSEM</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>BSREM</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>OSMAPOSL</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item row="1" column="0">
-          <widget class="QGroupBox" name="IterSubsetGroupbox">
-           <property name="title">
-            <string/>
-           </property>
-           <property name="checkable">
-            <bool>false</bool>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_4">
-            <item row="0" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_5">
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_4">
-                <item>
-                 <widget class="QLabel" name="OSEMIterations">
-                  <property name="text">
-                   <string>Iterations</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QSpinBox" name="osem_iterations_spinbox">
-                  <property name="minimum">
-                   <number>1</number>
-                  </property>
-                  <property name="maximum">
-                   <number>200</number>
-                  </property>
-                  <property name="value">
-                   <number>1</number>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_2">
-                <item>
-                 <widget class="QLabel" name="label_9">
-                  <property name="text">
-                   <string>Subsets</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QSpinBox" name="osem_subsets_spinbox">
-                  <property name="minimum">
-                   <number>1</number>
-                  </property>
-                  <property name="value">
-                   <number>1</number>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QGroupBox" name="PriorGroupBox">
-           <property name="title">
-            <string/>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_2">
-            <item row="0" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_10">
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QLabel" name="label_8">
-                <property name="text">
-                 <string>Prior Function</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="priorFunctionSelector">
-                <item>
-                 <property name="text">
-                  <string>None</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Quadratic</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>LogCosh</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>RelativeDifferencePenalty</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="2" column="0">
-             <widget class="QCheckBox" name="usePriorAnatomicalCheckBox">
-              <property name="text">
-               <string>Use Anatomical Information</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QGroupBox" name="priorAnatomicalGroupBox">
-              <property name="title">
-               <string/>
-              </property>
-              <layout class="QGridLayout" name="gridLayout_10">
-               <item row="0" column="0">
-                <layout class="QHBoxLayout" name="horizontalLayout_13">
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_14">
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item>
-                    <widget class="QLabel" name="label_4">
-                     <property name="text">
-                      <string>External Image</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="label_10">
-                     <property name="text">
-                      <string>Nearest Neighbours</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_13">
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item>
-                    <widget class="qMRMLNodeComboBox" name="anatomyPriorImageNode">
-                     <property name="enabled">
-                      <bool>true</bool>
-                     </property>
-                     <property name="nodeTypes">
-                      <stringlist notr="true">
-                       <string>vtkMRMLScalarVolumeNode</string>
-                      </stringlist>
-                     </property>
-                     <property name="showChildNodeTypes">
-                      <bool>false</bool>
-                     </property>
-                     <property name="hideChildNodeTypes">
-                      <stringlist notr="true"/>
-                     </property>
-                     <property name="addEnabled">
-                      <bool>false</bool>
-                     </property>
-                     <property name="removeEnabled">
-                      <bool>false</bool>
-                     </property>
-                     <property name="interactionNodeSingletonTag">
-                      <string notr="true"/>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QSpinBox" name="nearestNeighboursSpinBox">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>26</number>
-                     </property>
-                     <property name="value">
-                      <number>12</number>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QGroupBox" name="priorHyperparameterGroupbox">
-              <property name="title">
-               <string/>
-              </property>
-              <layout class="QGridLayout" name="gridLayout_11">
-               <item row="0" column="0">
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <layout class="QVBoxLayout" name="verticalLayout">
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item>
-                    <widget class="QLabel" name="priorBetaLabel">
-                     <property name="text">
-                      <string>Beta</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="priorGammaLabel">
-                     <property name="text">
-                      <string>Gamma</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="priorDeltaLabel">
-                     <property name="text">
-                      <string>Delta</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_6">
-                   <item>
-                    <widget class="QDoubleSpinBox" name="priorBetaSpinBox">
-                     <property name="value">
-                      <double>1.000000000000000</double>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QDoubleSpinBox" name="priorGammaSpinBox">
-                     <property name="value">
-                      <double>1.000000000000000</double>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QDoubleSpinBox" name="priorDeltaSpinBox">
-                     <property name="value">
-                      <double>1.000000000000000</double>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </item>
-           </layout>
-          </widget>
          </item>
         </layout>
        </widget>
@@ -1636,8 +1323,318 @@
         </layout>
        </widget>
       </item>
-      <item row="8" column="0">
-       <widget class="QPlainTextEdit" name="statusLabel"/>
+      <item row="6" column="0">
+       <widget class="ctkCollapsibleButton" name="reconstructionalgorithm_collapsiblebutton">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>Reconstruction Algorithms</string>
+        </property>
+        <property name="collapsed">
+         <bool>false</bool>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="0" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_25">
+           <item>
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>Reconstruction Algorithm</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="algorithm_selector_combobox">
+             <item>
+              <property name="text">
+               <string>OSEM</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>BSREM</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>OSMAPOSL</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="1" column="0">
+          <widget class="QGroupBox" name="IterSubsetGroupbox">
+           <property name="title">
+            <string/>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="0" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <item>
+                 <widget class="QLabel" name="OSEMIterations">
+                  <property name="text">
+                   <string>Iterations</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="osem_iterations_spinbox">
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>200</number>
+                  </property>
+                  <property name="value">
+                   <number>1</number>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <item>
+                 <widget class="QLabel" name="label_9">
+                  <property name="text">
+                   <string>Subsets</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="osem_subsets_spinbox">
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="value">
+                   <number>1</number>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QGroupBox" name="PriorGroupBox">
+           <property name="title">
+            <string/>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_10">
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_8">
+                <property name="text">
+                 <string>Prior Function</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="priorFunctionSelector">
+                <item>
+                 <property name="text">
+                  <string>None</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Quadratic</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>LogCosh</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>RelativeDifferencePenalty</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="usePriorAnatomicalCheckBox">
+              <property name="text">
+               <string>Use Anatomical Information</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QGroupBox" name="priorAnatomicalGroupBox">
+              <property name="title">
+               <string/>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_10">
+               <item row="0" column="0">
+                <layout class="QHBoxLayout" name="horizontalLayout_13">
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <layout class="QVBoxLayout" name="verticalLayout_14">
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QLabel" name="label_4">
+                     <property name="text">
+                      <string>External Image</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="label_10">
+                     <property name="text">
+                      <string>Nearest Neighbours</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <layout class="QVBoxLayout" name="verticalLayout_13">
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="qMRMLNodeComboBox" name="anatomyPriorImageNode">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="nodeTypes">
+                      <stringlist notr="true">
+                       <string>vtkMRMLScalarVolumeNode</string>
+                      </stringlist>
+                     </property>
+                     <property name="showChildNodeTypes">
+                      <bool>false</bool>
+                     </property>
+                     <property name="hideChildNodeTypes">
+                      <stringlist notr="true"/>
+                     </property>
+                     <property name="addEnabled">
+                      <bool>false</bool>
+                     </property>
+                     <property name="removeEnabled">
+                      <bool>false</bool>
+                     </property>
+                     <property name="interactionNodeSingletonTag">
+                      <string notr="true"/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QSpinBox" name="nearestNeighboursSpinBox">
+                     <property name="minimum">
+                      <number>1</number>
+                     </property>
+                     <property name="maximum">
+                      <number>26</number>
+                     </property>
+                     <property name="value">
+                      <number>12</number>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QGroupBox" name="priorHyperparameterGroupbox">
+              <property name="title">
+               <string/>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_11">
+               <item row="0" column="0">
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <layout class="QVBoxLayout" name="verticalLayout">
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QLabel" name="priorBetaLabel">
+                     <property name="text">
+                      <string>Beta</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="priorGammaLabel">
+                     <property name="text">
+                      <string>Gamma</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="priorDeltaLabel">
+                     <property name="text">
+                      <string>Delta</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <layout class="QVBoxLayout" name="verticalLayout_6">
+                   <item>
+                    <widget class="QDoubleSpinBox" name="priorBetaSpinBox">
+                     <property name="value">
+                      <double>1.000000000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QDoubleSpinBox" name="priorGammaSpinBox">
+                     <property name="value">
+                      <double>1.000000000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QDoubleSpinBox" name="priorDeltaSpinBox">
+                     <property name="value">
+                      <double>1.000000000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </item>
      </layout>
     </widget>
