@@ -25,7 +25,6 @@ def get_object_meta_proj_meta(bed_idx, files_NM, index_peak):
 def get_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower=None, index_upper=None):
     projectionss = dicom.load_multibed_projections(files_NM)
     photopeak = projectionss[bed_idx][index_peak]
-
     # No scatter
     if (index_lower is None)*(index_upper is None):
         scatter = None

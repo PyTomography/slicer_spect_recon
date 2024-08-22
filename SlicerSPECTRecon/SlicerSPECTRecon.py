@@ -26,7 +26,6 @@ from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
 from Logic.reconstructSimindTest import reconstructSimindTest
 
-
 __submoduleNames__ = [
     "SlicerSPECTReconLogic",
     "SlicerSPECTReconTest",
@@ -40,21 +39,19 @@ __submoduleNames__ = [
     "priors",
     "algorithms",
     "getmetadatautils",
-    "likelihood"
+    "likelihood",
+    "dicomvalues"
 ]
-
 __package__ = "SlicerSPECTRecon"
 mod = importlib.import_module("Logic", __name__)
 importlib.reload(mod)
 __all__ = ["SlicerSPECTRecon", "SlicerSPECTReconWidget", "SlicerSPECTReconLogic", "SlicerSPECTReconTest"]
 
 
-
 class SlicerSPECTRecon(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
-
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         # TODO: make this more human readable by adding spaces
@@ -70,14 +67,13 @@ class SlicerSPECTRecon(ScriptedLoadableModule):
         # TODO: update with short description of the module and a link to online module documentation
         # _() function marks text as translatable to other languages
         self.parent.helpText = _("""
-This is an example of scripted loadable module bundled in an extension.
-See more information in <a href="https://github.com/organization/projectname#pytomography">module documentation</a>.
-""")
-        # TODO: replace with organization, grant and thanks
+            This is an example of scripted loadable module bundled in an extension.
+            See more information in <a href="https://github.com/organization/projectname#pytomography">module documentation</a>.
+            """)
         self.parent.acknowledgementText = _("""
-This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
-and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
-""")
+            This software was originally developed by Obed Korshie Dzikunu, Luke Polson, Maziar Sabouri and Shadab Ahamed of the
+            Quantitative Radiomolecular Imaging and Therapy Lab of the BC Cancer Research Institute, Canada.
+            """) #replace with organization, grant and thanks
         try:
             slicer.selfTests
         except AttributeError:
@@ -89,11 +85,11 @@ and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR0132
             :param msec: delay to associate with :func:`ScriptedLoadableModuleTest.delayDisplay()`.
             """
             logging.info("\n******* Starting Tests of SlicerSPECTRecon **********\n")
-            # test reconstructSimind
+            # Test reconstructSimind
             testCase = reconstructSimindTest()
             testCase.messageDelay = msec
             testCase.runTest(**kwargs)
-            # test SlicerSPECTReconTest
+            # Test SlicerSPECTReconTest
             # name of the test case class is expected to be <ModuleName>Test
             module = importlib.import_module(self.__module__)
             className = self.moduleName + "Test"
@@ -107,7 +103,6 @@ and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR0132
             testCase = TestCaseClass()
             testCase.messageDelay = msec
             testCase.runTest(**kwargs)
-
             logging.info("\n******* All tests passed **********\n")
 
     # -------------------------------------------------
@@ -365,7 +360,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 self.ui.outputVolumeSelector.addNode()
         #Scatter
         # Necessarily disable
-
         if not self.ui.scatter_toggle.checked:
             upper_window_idx = lower_window_idx = None
         elif self.ui.spect_scatter_combobox.currentText=='Dual Energy Window':

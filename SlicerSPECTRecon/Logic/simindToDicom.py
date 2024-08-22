@@ -9,8 +9,6 @@ from datetime import datetime
 from pydicom.dataset import Dataset
 from pydicom.sequence import Sequence
 import slicer
-import copy
-from DICOMLib import DICOMUtils
 
 def simind2DICOMProjections(
     headerfiles, 

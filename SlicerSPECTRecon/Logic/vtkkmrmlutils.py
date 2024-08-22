@@ -1,5 +1,4 @@
 import slicer
-import vtk
 
 def getAllScalarVolumeNodes():
     scene = slicer.mrmlScene
@@ -36,7 +35,6 @@ def filterNodesByModality(nodes, modality):
     return filteredNodes
 
 def pathFromNode(node):
-    #TODO: Review this function to handle the case where the data was dragged and dropped
     if node is not None:
         storageNode = node.GetStorageNode()
         if storageNode is not None: # loaded via drag-drop
@@ -47,7 +45,6 @@ def pathFromNode(node):
     return filepath
 
 def filesFromNode(node):
-    #TODO: Review this function to handle the case where the data was dragged and dropped
     if node is not None:
         storageNode = node.GetStorageNode()
         if storageNode is not None: # loaded via drag-drop

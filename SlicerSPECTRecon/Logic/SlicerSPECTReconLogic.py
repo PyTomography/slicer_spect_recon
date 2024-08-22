@@ -4,8 +4,6 @@ import slicer
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
-from DICOMLib import DICOMUtils
-import pytomography
 from pytomography.io.SPECT import dicom
 import numpy as np
 import pydicom
@@ -19,7 +17,6 @@ from Logic.transforms import *
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
-
 
 class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
     """This class should implement all the actual
@@ -35,7 +32,6 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
-
 
     def reconstruct(
         self,
