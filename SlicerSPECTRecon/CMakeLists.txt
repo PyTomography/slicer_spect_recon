@@ -17,6 +17,7 @@ set(MODULE_PYTHON_SCRIPTS
   Logic/vtkkmrmlutils.py
   Logic/reconstructSimindTest.py
   Logic/testutils_builder.py
+  Logic/dicomvalues.py
   )
 
 set(MODULE_PYTHON_RESOURCES
