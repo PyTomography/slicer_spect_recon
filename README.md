@@ -35,17 +35,15 @@ The following link collection should facilitate understanding the code in this e
 
 The links to the example data (sample patient and simind files) are in the sample_data.txt file in the `Resources` folder. 
 
-
 ## Contribute
 
 If you'd like to contribute, you can find an orientation on the Slicer [documentation for developers](https://www.slicer.org/wiki/Documentation/Nightly/Developers).
 
-Please read first the `CONTRIBUTING.md` file for further information on how to contribute.
+Please read first the `CONTRIBUTING.md` file for further information on how to contribute. You can also check the Pytomography [readthedocs](https://pytomography.readthedocs.io/en/latest/) for an orientation on Pytomography.
 
 ## License
 
 SlicerSPECTRecon is subject to the `MIT License`, which is in the project's root.
-
 
 ## Contact
 
