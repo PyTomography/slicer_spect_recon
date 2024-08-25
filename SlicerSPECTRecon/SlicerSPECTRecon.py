@@ -1,8 +1,29 @@
+import slicer
+import importlib
+
+def ensure_packages_installed():
+    """Ensure required packages are installed."""
+    required_packages = {
+        "pytomography": "3.2.2",
+        "beautifulsoup4": None,
+    }
+    for package, version in required_packages.items():
+        try:
+            if version:
+                package_name = f"{package}=={version}"
+            else:
+                package_name = package
+            importlib.import_module(package)
+        except ImportError:
+            slicer.util.pip_install(package_name)
+ensure_packages_installed()
+
+import pytomography
+print(pytomography.__version__)
 import logging
 import os
 from typing import Annotated, Optional
 import vtk
-import slicer
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
@@ -13,24 +34,19 @@ from slicer.parameterNodeWrapper import (
 )
 from slicer import vtkMRMLScalarVolumeNode
 from DICOMLib import DICOMUtils
-slicer.util.pip_install("--ignore-requires-python pytomography==3.2.2")
-slicer.util.pip_install("beautifulsoup4")
-import pytomography
-print(pytomography.__version__)
 import re
-import importlib
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
 from Logic.SlicerSPECTReconTest import SlicerSPECTReconTest
 from Logic.vtkkmrmlutils import *
 from Logic.getmetadatautils import *
 from Logic.simindToDicom import *
-from Logic.reconstructSimindTest import reconstructSimindTest
+from Logic.simindToDicomConverterTest import simindToDicomConverterTest
 
 __submoduleNames__ = [
     "SlicerSPECTReconLogic",
     "SlicerSPECTReconTest",
     "vtkkmrmlutils",
-    "reconstructSimindTest",
+    "simindToDicomConverterTest",
     "testutils_builder",
     "transforms",
     "volumeutils",
@@ -86,7 +102,7 @@ class SlicerSPECTRecon(ScriptedLoadableModule):
             """
             logging.info("\n******* Starting Tests of SlicerSPECTRecon **********\n")
             # Test reconstructSimind
-            testCase = reconstructSimindTest()
+            testCase = simindToDicomConverterTest()
             testCase.messageDelay = msec
             testCase.runTest(**kwargs)
             # Test SlicerSPECTReconTest
