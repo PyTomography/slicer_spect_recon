@@ -83,8 +83,8 @@ class SlicerSPECTRecon(ScriptedLoadableModule):
         # TODO: update with short description of the module and a link to online module documentation
         # _() function marks text as translatable to other languages
         self.parent.helpText = _("""
-            This is an example of scripted loadable module bundled in an extension.
-            See more information in <a href="https://github.com/organization/projectname#pytomography">module documentation</a>.
+            This module implements GPU accelerated SPECT image reconstruction. This module is for academic purposes. Please do not use for clinical work.
+            See more information in <a href="https://github.com/PyTomography/slicer_spect_recon/blob/main/User_Manual.md">module documentation</a>.
             """)
         self.parent.acknowledgementText = _("""
             This software was originally developed by Obed Korshie Dzikunu, Luke Polson, Maziar Sabouri and Shadab Ahamed of the
