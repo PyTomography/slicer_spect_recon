@@ -29,8 +29,11 @@ def getVolumeNode(NodeIDs):
 def displayVolumeInViewer(volumeNode, outputVolumeNode):
     outputVolumeNode.SetAndObserveImageData(volumeNode.GetImageData())
     outputVolumeNode.CreateDefaultDisplayNodes() 
-    colorTableID = volumeNode.GetDisplayNode().GetColorNodeID()
-    outputVolumeNode.GetDisplayNode().SetAndObserveColorNodeID(colorTableID)
+    petColorNode = slicer.util.getNode('PET-DICOM')
+    if petColorNode:
+        outputVolumeNode.GetDisplayNode().SetAndObserveColorNodeID(petColorNode.GetID())
+    else:
+        slicer.util.errorDisplay("PET-DICOM color map not found.")
     window = volumeNode.GetDisplayNode().GetWindow()
     level = volumeNode.GetDisplayNode().GetLevel()
     outputVolumeNode.GetDisplayNode().SetWindow(window)

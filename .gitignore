@@ -7,3 +7,4 @@ paper/*.pdf
 SlicerSPECTRecon/__pycache__/
 testing
 SlicerSPECTRecon/Logic/rough.ipynb
+.vscode
