@@ -11,7 +11,7 @@ from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
 from Logic.simindToDicom import *
 from Logic.testutils_builder import *
 
-class reconstructSimindTest(ScriptedLoadableModuleTest):
+class simindToDicomConverterTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
     Uses ScriptedLoadableModuleTest base class, available at:
@@ -21,7 +21,7 @@ class reconstructSimindTest(ScriptedLoadableModuleTest):
     def setUp(self):
         """Do whatever is needed to reset the state - typically a scene clear will be enough."""
         self.cleanUP()
-        logger.info("SlicerSPECTRecon.reconstructSimindTest")
+        logger.info("SlicerSPECTRecon.simindToDicomConverterTest")
         module_dir = os.path.dirname(__file__)
         self.resources_dir = os.path.join(module_dir, './../Resources')
         self.logic = SlicerSPECTReconLogic()

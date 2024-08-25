@@ -15,7 +15,7 @@ set(MODULE_PYTHON_SCRIPTS
   Logic/transforms.py
   Logic/volumeutils.py
   Logic/vtkkmrmlutils.py
-  Logic/reconstructSimindTest.py
+  Logic/simindToDicomConverterTest.py
   Logic/testutils_builder.py
   Logic/dicomvalues.py
   )
