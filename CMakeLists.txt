@@ -4,12 +4,12 @@ project(Pytomography Slicer SPECT Reconstruction)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/Pytomography")
+set(EXTENSION_HOMEPAGE "https://github.com/PyTomography/slicer_spect_recon")
 set(EXTENSION_CATEGORY "Tomographic Reconstruction")
 set(EXTENSION_CONTRIBUTORS "Obed Dzikunu (QURIT), Luke Polson (QURIT), Maziar Sabouri (QURIT),  Shadab Ahamed (QURIT)")
-set(EXTENSION_DESCRIPTION "GPU accelerated SPECT and PET reconstruction application")
-set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/Pytomography.png")
-set(EXTENSION_SCREENSHOTURLS "https://www.example.com/Slicer/Extensions/Pytomography/Screenshots/1.png")
+set(EXTENSION_DESCRIPTION "This module implement GPU accelerated SPECT image reconstruction. User Manual: https://github.com/PyTomography/slicer_spect_recon/blob/main/User_Manual.md")
+set(EXTENSION_ICONURL "https://github.com/PyTomography/slicer_spect_recon/blob/main/Pytomography.png")
+set(EXTENSION_SCREENSHOTURLS "https://github.com/PyTomography/slicer_spect_recon/blob/main/images/screenshot.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
