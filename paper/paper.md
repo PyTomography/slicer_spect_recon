@@ -9,22 +9,17 @@ tags:
 authors:
   - name: Obed K. Dzikunu
     orcid: 0000-0002-1162-0629
-    equal-contrib: true
+    corresponding: true # (This is how to denote the corresponding author)
     affiliation: "2, 3" # (Multiple affiliations must be quoted)
   - name: Maziar Sabouri
-    corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1, 2"
   - name: Shadab Ahamed
-    corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1, 2"
   - name: Carlos Uribe
-    corresponding: true # (This is how to denote the corresponding author)
     affiliation: "2, 4, 5"
   - name: Arman Rahmim
-    corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1, 2, 3, 5"
   - name: Luke Polson
-    corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1, 2"    
 affiliations:
  - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver Canada
@@ -37,7 +32,7 @@ affiliations:
    index: 4
  - name: Molecular Imaging and Therapy Department, BC Cancer, Vancouver Canada
    index: 5
-date: 05 September 2024
+date: 06 September 2024
 bibliography: paper.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
