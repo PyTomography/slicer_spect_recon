@@ -37,7 +37,7 @@ affiliations:
    index: 4
  - name: Molecular Imaging and Therapy Department, BC Cancer, Vancouver Canada
    index: 5
-date: 06 July 2024
+date: 05 September 2024
 bibliography: paper.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
