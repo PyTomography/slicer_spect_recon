@@ -4,7 +4,7 @@ on:
     paths:
       - paper/paper.md
       - paper/paper.bib
-      - images/with_recon.png
+      - with_recon.png
       - .github/workflows/draft-pdf.yml
 
 jobs:
