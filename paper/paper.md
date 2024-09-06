@@ -7,13 +7,10 @@ tags:
   - spect
   - image reconstruction
 authors:
-  - name: Luke Polson
-    orcid: 0000-0000-0000-0000
+  - name: Obed K. Dzikunu
+    orcid: 0000-0002-1162-0629
     equal-contrib: true
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Obed Dzikunu
-    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    affiliation: "2, 3"
+    affiliation: "2, 3" # (Multiple affiliations must be quoted)
   - name: Maziar Sabouri
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1, 2"
@@ -26,6 +23,9 @@ authors:
   - name: Arman Rahmim
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1, 2, 3, 5"
+  - name: Luke Polson
+    corresponding: true # (This is how to denote the corresponding author)
+    affiliation: "1, 2"    
 affiliations:
  - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver Canada
    index: 1
@@ -53,7 +53,7 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 
 # Statement of need
 
-SPECT imaging is used to measure the 3D distribution of a radioactive molecule within a patient; it requires (i) acquisition of 2D ``projection'' images at different angles using a gamma camera followed by (ii) use of a tomographic image reconstruction algorithm to obtain a 3D raioactivity distribution consistent with the acquired data. While there exist many commercial products for image reconstruction, as well as multiple low-level software packages [@pytomography] [@STIR] [@castor], there currently is no graphic user interface (GUI) that provides access to the latest reconstruction algorithms. Due to continuing research interest in the implications of different reconstruction techniques on various clinical tasks [@hermes_spect_ap] [@spect_ai], there is a need for a open-source GUI for SPECT reconstruction.
+SPECT imaging is used to measure the 3D distribution of a radioactive molecule within a patient; it requires (i) acquisition of 2D `projection` images at different angles using a gamma camera followed by (ii) use of a tomographic image reconstruction algorithm to obtain a 3D radioactivity distribution consistent with the acquired data. While there exist many commercial products for image reconstruction, as well as multiple low-level software packages [@pytomography] [@STIR] [@castor], there currently is no graphic user interface (GUI) that provides access to the latest reconstruction algorithms. Due to continuing research interest in the implications of different reconstruction techniques on various clinical tasks [@hermes_spect_ap] [@spect_ai], there is a need for a open-source GUI for SPECT reconstruction.
 
 
 # Overview of SlicerSPECTRecon
@@ -62,11 +62,11 @@ Typical reconstruction algorithms in nuclear medicine attempt to maximize a likl
 \begin{equation}
   \hat{x} = \underset{x;A}{\text{argmax}}~L(y|x,H,s)
 \end{equation}
-where $\hat{x}$ is the 3D image estimate, $A$ is the reconstruction algorithm, $L$ is a statistical likelihood function that describes the acquired data $y$, $H$ is a linear operator that models the imaging system, $s$ is an additive term that corrects for scatter, and $\text{argmax}_{x;A}$ signfies maximization of the liklihood with respect to $x$ using algorithm $A$. Based on this formalism, SlicerSPECTRecon is partioned into four main components: data converters / input data, system modeling, likelihoods, and reconstruction algorithms.
+where $\hat{x}$ is the 3D image estimate, $A$ is the reconstruction algorithm, $L$ is a statistical likelihood function that describes the acquired data $y$, $H$ is a linear operator that models the imaging system, $s$ is an additive term that corrects for scatter, and $\text{argmax}_{x;A}$ signifies maximization of the liklihood with respect to $x$ using algorithm $A$. Based on this formalism, SlicerSPECTRecon is partioned into four main components: data converters / input data, system modeling, likelihoods, and reconstruction algorithms.
 
-The first component, `Data Converters` / `Input Data`, considers the raw data $y$. For medical imaging data in nuclear medicine, `3D Slicer` provides native support for the DICOM data format. While this is sufficient for clinical data, there exist other data formats, such as Monte Carlo data from `SIMIND` [@simind] and `GATE`, which are not supported by `3D Slicer`. The purpose of the data converters tab is to provide tools for the conversion of data from alternative sources into DICOM format. Once converted into the DICOM format, data can be loaded into `3D Slicer` using the native `Data` module. While the extension has currently has support for the conversion of `SIMIND` data, more data converters will be added in the future dependent on community request. Once the raw data is loaded into the 3D slicer interface, the user can select the projection data to reconstruct in the `Input Data` tab. Data from multiple bed positions can be selected at this stage; resulting reconstructions will contain the a single 3D image where all the bed positions are stitched. When the projection data is selected, information on all energy windows becomes stored, and users can select which energy window they want to reconstruct in the `Photopeak` option.
+The first component, `Data Converters` / `Input Data`, considers the raw data $y$. For medical imaging data in nuclear medicine, `3D Slicer` provides native support for the DICOM data format. While this is sufficient for clinical data, there exist other data formats, such as Monte Carlo data from `SIMIND` [@simind] and `GATE`, which are not supported by `3D Slicer`. The purpose of the data converters tab is to provide tools for the conversion of data from alternative sources into DICOM format. Once converted into the DICOM format, data can be loaded into `3D Slicer` using the native `Data` module. While the extension currently has support for the conversion of `SIMIND` data, more data converters will be added in the future dependent on community request. Once the raw data is loaded into the 3D slicer interface, the user can select the projection data to reconstruct in the `Input Data` tab. Data from multiple bed positions can be selected at this stage; resulting reconstructions will contain a single 3D image where all the bed positions are stitched. When the projection data is selected, information on all energy windows becomes stored, and users can select which energy window they want to reconstruct in the `Photopeak` option.
 
-The second component, `System Modeling`, considers the system matrix $H$ as well as additional corrections such as scatter $s$. Selecting `Attenuation Correction` enables attenuation correction during reconstruction; users must specify a corresponding CT image used to generation a mu-map. Selecting `Collimator Detector Response Modeling` enables modeling of the collimator and detector spatial resolution in image reconstruction. Users must specify the collimator code as well as the intrinsic spatial resolution of the scintillator crystals. Selecting `Scatter Correction` enables scatter correction during reconstruction; users must select the scatter correction method as well as supporting data required for the method.
+The second component, `System Modeling`, considers the system matrix $H$ as well as additional corrections such as scatter $s$. Selecting `Attenuation Correction` enables attenuation correction during reconstruction; users must specify a corresponding CT image used to generate a mu-map. Selecting `Collimator Detector Response Modeling` enables modeling of the collimator and detector spatial resolution in image reconstruction. Users must specify the collimator code as well as the intrinsic spatial resolution of the scintillator crystals. Selecting `Scatter Correction` enables scatter correction during reconstruction; users must select the scatter correction method as well as supporting data required for the method.
 
 The third component, likelihoods, considers the the likelihood function $L$. Currently, the extension only supports the `PoissonLogLikelihood` likelihood, which correctly describes the data acquired in SPECT imaging. It may be desirable in the future to test alternative likelihood functions, so this is left as a seperate module.
 
@@ -74,7 +74,7 @@ The fourth component, algorithms, considers the reconstruction algorithm $A$. Cu
 
 \autoref{fig:fig1} contains a screenshot of the extension along with a sample reconstructed image in the 3D Slicer viewer.   
 
-![Left: Extension options. Right: reconstructed coronal slice of a ${}^{177}$Lu-PSMA-617 patient (two bed positions); the raw data was acquired on a GE Discovery 670 camera.\label{fig:fig1}](with_recon.png)
+![Left: Extension options. Right: reconstructed coronal slice of a ${}^{177}$Lu-PSMA-617 patient (two bed positions); the raw data was acquired on a GE Discovery 670 camera.\label{fig:fig1}](images/with_recon.png)
 
 
 # Acknowledgements
