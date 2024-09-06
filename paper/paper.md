@@ -69,7 +69,7 @@ The fourth component, algorithms, considers the reconstruction algorithm $A$. Cu
 
 \autoref{fig:fig1} contains a screenshot of the extension along with a sample reconstructed image in the 3D Slicer viewer.   
 
-![Left: Extension options. Right: reconstructed coronal slice of a ${}^{177}$Lu-PSMA-617 patient (two bed positions); the raw data was acquired on a GE Discovery 670 camera.\label{fig:fig1}](images/with_recon.png)
+![Left: Extension options. Right: reconstructed coronal slice of a ${}^{177}$Lu-PSMA-617 patient (two bed positions); the raw data was acquired on a GE Discovery 670 camera.\label{fig:fig1}](../images/with_recon.png)
 
 
 # Acknowledgements
