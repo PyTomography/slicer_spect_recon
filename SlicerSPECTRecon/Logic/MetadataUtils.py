@@ -3,8 +3,8 @@ import numpy as np
 import pydicom
 
 def getEnergyWindow(directory):
-    ds = pydicom.read_file(directory)
-    window_names =[]
+    ds = pydicom.dcmread(directory)
+    window_names = []
     mean_window_energies = []
     for energy_window_information in ds.EnergyWindowInformationSequence:
         lower_limit = energy_window_information.EnergyWindowRangeSequence[0].EnergyWindowLowerLimit
@@ -12,9 +12,12 @@ def getEnergyWindow(directory):
         energy_window_name = energy_window_information.EnergyWindowName
         mean_window_energies.append((lower_limit+upper_limit)/2)
         window_names.append(f'{energy_window_name} ({lower_limit:.2f}keV - {upper_limit:.2f}keV)')
-    idx_sorted = np.argsort(mean_window_energies)
+    idx_sorted = list(np.argsort(mean_window_energies))
     window_names = list(np.array(window_names)[idx_sorted])
     mean_window_energies = list(np.array(mean_window_energies)[idx_sorted])
+    # Insert None option to beginning
+    window_names.insert(0, 'None')
+    idx_sorted.insert(0, None)
     return window_names, mean_window_energies, idx_sorted
 
 def get_object_meta_proj_meta(bed_idx, files_NM, index_peak):

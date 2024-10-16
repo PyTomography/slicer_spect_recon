@@ -4,13 +4,14 @@ import importlib
 def ensure_packages_installed():
     """Ensure required packages are installed."""
     required_packages = {
-        "pytomography": "3.2.2",
+        "pytomography": "3.2.3",
         "beautifulsoup4": None,
     }
     for package, version in required_packages.items():
         try:
             if version:
                 package_name = f"{package}=={version}"
+                slicer.util.pip_install(package_name)
             else:
                 package_name = package
             importlib.import_module(package)
@@ -36,11 +37,11 @@ from slicer import vtkMRMLScalarVolumeNode
 from DICOMLib import DICOMUtils
 import re
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
-from Logic.SlicerSPECTReconTest import SlicerSPECTReconTest
-from Logic.vtkkmrmlutils import *
-from Logic.getmetadatautils import *
-from Logic.simindToDicom import *
-from Logic.simindToDicomConverterTest import simindToDicomConverterTest
+from Logic.VtkkmrmlUtils import *
+from Logic.MetadataUtils import *
+from Logic.SimindToDicom import *
+from Testing.Python.reconstruction import ReconstructionTest
+from Testing.Python.simind_to_dicom import SimindToDicomConverterTest
 
 __submoduleNames__ = [
     "SlicerSPECTReconLogic",
@@ -96,34 +97,24 @@ class SlicerSPECTRecon(ScriptedLoadableModule):
             slicer.selfTests = {}
         slicer.selfTests["SlicerSPECTReconTest"] = self.runTest
 
-    def runTest(self, msec=100, **kwargs):
-            """
-            :param msec: delay to associate with :func:`ScriptedLoadableModuleTest.delayDisplay()`.
-            """
-            logging.info("\n******* Starting Tests of SlicerSPECTRecon **********\n")
-            # Test reconstructSimind
-            testCase = simindToDicomConverterTest()
-            testCase.messageDelay = msec
-            testCase.runTest(**kwargs)
-            # Test SlicerSPECTReconTest
-            # name of the test case class is expected to be <ModuleName>Test
-            module = importlib.import_module(self.__module__)
-            className = self.moduleName + "Test"
-            try:
-                TestCaseClass = getattr(module, className)
-            except AttributeError:
-                # Treat missing test case class as a failure; provide useful error message
-                raise AssertionError(
-                    f"Test case class not found: {self.__module__}.{className} "
-                )
-            testCase = TestCaseClass()
-            testCase.messageDelay = msec
-            testCase.runTest(**kwargs)
-            logging.info("\n******* All tests passed **********\n")
+    def runTest(self, msec=1000, **kwargs):
+        """
+        :param msec: delay to associate with :func:`ScriptedLoadableModuleTest.delayDisplay()`.
+        """
+        logging.info("\n******* Starting Tests of SlicerSPECTRecon **********\n")
+        # Test SIMIND Converter
+        testCase = SimindToDicomConverterTest()
+        testCase.messageDelay = msec
+        testCase.runTest(**kwargs)
+        # # Test Reconstructions
+        testCase = ReconstructionTest()
+        testCase.messageDelay = msec
+        testCase.runTest(**kwargs)
+        logging.info("\n******* All tests passed **********\n")
 
-    # -------------------------------------------------
-    # ------------ SlicerSPECTReconWidget -------------
-    # -------------------------------------------------
+# -------------------------------------------------
+# ------------ SlicerSPECTReconWidget -------------
+# -------------------------------------------------
 
 class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """Uses ScriptedLoadableModuleWidget base class, available at:
@@ -158,7 +149,12 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # (in the selected parameter node).
         self.setupConnections()
         # initialize for loading data in case
-
+        # Add uncertainty table
+        self.uncertainty_table =  createTable(
+            ['Image', 'Segmentation', 'Mask', 'Absolute Uncertainty', 'Percent Uncertainty'],
+            ['string', 'string', 'string', 'float', 'float']
+        )
+        
     def setupConnections(self):
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.psf_toggle.connect('toggled(bool)', self.hideShowItems)
@@ -171,6 +167,8 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.NM_data_selector.connect('checkedNodesChanged()', self.updateParameterNodeFromGUI)
         self.ui.attenuationdata.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.anatomyPriorImageNode.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        self.ui.UncImageMRMLNodeComboBox.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
+        self.ui.UncImageSegmentSelectorWidget.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         self.ui.spect_collimator_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_scatter_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
@@ -179,7 +177,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.IntrinsicResolutionSpinBox.connect('valueChanged(float)', self.updateParameterNodeFromGUI)
         self.ui.osem_iterations_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
         self.ui.osem_subsets_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
-        self.ui.outputVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.updateParameterNodeFromGUI)
         # Default values
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
@@ -187,19 +184,30 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.PriorGroupBox.setVisible(False)
         # Buttons
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
+        self.ui.computeUncertaintyPushButton.connect('clicked(bool)', self.onComputeUncertaintyButton)
         # Data converters
         self.ui.data_converter_comboBox.connect('currentTextChanged(QString)', self.hideShowItems)
+        self.ui.postReconSelectionComboBox.connect('currentTextChanged(QString)', self.hideShowItems)
         self.ui.simind_nenergy_spinBox.connect('valueChanged(int)', self.hideShowItems)
         self.ui.simind_patientname_lineEdit.connect('textChanged(QString)', self.changeSIMINDFolderStudyDescription)
         self.ui.simind_tperproj_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
         self.ui.simind_scale_doubleSpinBox.connect('valueChanged(double)', self.changeSIMINDFolderStudyDescription)
         self.ui.simind_randomseed_spinBox.connect('valueChanged(int)', self.changeSIMINDFolderStudyDescription)
         self.ui.simind2dicom_groupBox.setVisible(False)
+        self.ui.data_converters_CollapsibleButton.collapsed = True
         for i in range(2,10):
             getattr(self.ui, f'PathLineEdit_w{i}').setVisible(False)
             getattr(self.ui, f'label_w{i}').setVisible(False)
         self.ui.simind_projections_pushButton.connect('clicked(bool)', self.saveSIMINDProjections)
         self.ui.simindSaveAmapPushButton.connect('clicked(bool)', self.saveSIMINDAmap)
+        # Post reconstruction
+        self.ui.PostReconCollapsibleButton.collapsed = True
+        self.ui.uncertaintyEstimationGroupBox.setVisible(False)
+        # Multi photopeak
+        self.ui.multiPhotopeakGroupBox.setVisible(False)
+        self.ui.multiScatterWindowGroupBox.setVisible(False)
+        self.ui.multiPhotopeakCheckbox.connect('toggled(bool)', self.hideShowItems)
+        self.ui.numPhotopeaksSpinBox.connect('valueChanged(int)', self.hideShowItems)
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
         
@@ -255,12 +263,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         # Scatter stuff
-        if self.ui.spect_scatter_combobox.currentText=='Dual Energy Window':
-            self.ui.upperwindowLabel.setVisible(False)
-            self.ui.lowerwindowLabel.setVisible(True)
-            self.ui.spect_upperwindow_combobox.setVisible(False)
-            self.ui.spect_lowerwindow_combobox.setVisible(True)
-        elif self.ui.spect_scatter_combobox.currentText=='Triple Energy Window':
+        if self.ui.spect_scatter_combobox.currentText=='Energy Window':
             self.ui.upperwindowLabel.setVisible(True)
             self.ui.lowerwindowLabel.setVisible(True)
             self.ui.spect_upperwindow_combobox.setVisible(True)
@@ -294,6 +297,23 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         for i in range(1,10):
             getattr(self.ui, f'PathLineEdit_w{i}').setVisible(i<=n_windows)
             getattr(self.ui, f'label_w{i}').setVisible(i<=n_windows)
+        # Post reconstruction
+        self.ui.uncertaintyEstimationGroupBox.setVisible(self.ui.postReconSelectionComboBox.currentText=='Uncertainty Estimation')
+        # Multiphotopeak
+        self.ui.multiPhotopeakGroupBox.setVisible(self.ui.multiPhotopeakCheckbox.checked)
+        self.ui.multiScatterWindowGroupBox.setVisible(self.ui.multiPhotopeakCheckbox.checked)
+        self.ui.scatterWindowGroupBox.setVisible(not self.ui.multiPhotopeakCheckbox.checked)
+        self.ui.Photopeak.setVisible(not self.ui.multiPhotopeakCheckbox.checked)
+        self.ui.photopeak_combobox.setVisible(not self.ui.multiPhotopeakCheckbox.checked)
+        show3 = self.ui.numPhotopeaksSpinBox.value==3
+        self.ui.multiPhotopeakLabel3.setVisible(show3)
+        self.ui.multiPhotopeakComboBox3.setVisible(show3)
+        self.ui.multiPhotopeakWeightLabel3.setVisible(show3)
+        self.ui.multiPhotopeakWeightDoubleSpinBox1.setVisible(show3)
+        self.ui.multiScatterUpperLabel3.setVisible(show3)
+        self.ui.multiScatterLowerLabel3.setVisible(show3)
+        self.ui.upperWindowMultiComboBox3.setVisible(show3)
+        self.ui.lowerWindowMultiComboBox3.setVisible(show3)
         
     def updateGUIFromParameterNode(self, caller=None, event=None):
         """
@@ -305,31 +325,36 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
         inputVolume1 = self._parameterNode.GetNodeReference("InputVolume1")
-        if inputVolume1 and self._parameterNode.GetParameter("Photopeak") :
+        if inputVolume1 and self._parameterNode.GetParameter("PhotopeakIndex") :
             self.getProjectionData(inputVolume1)
         last_text = {}
-        lastUpperWindowSelection = last_text.get(self.ui.spect_upperwindow_combobox.objectName, "None")
-        lastLowerWindowSelection = last_text.get(self.ui.spect_lowerwindow_combobox.objectName, "None")
         # Update photopeak
-        photopeak_value = self._parameterNode.GetParameter("Photopeak")
-        photopeak_index = self.ui.photopeak_combobox.findText(photopeak_value)
-        self.ui.photopeak_combobox.setCurrentIndex(photopeak_index)
-        last_text[self.ui.photopeak_combobox.objectName] = self.ui.photopeak_combobox.currentText
-        # Attenuation Stuff
+        self.ui.photopeak_combobox.setCurrentIndex(int(self._parameterNode.GetParameter("PhotopeakIndex")))
+        self.ui.multiPhotopeakComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto1Index")))
+        self.ui.multiPhotopeakComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto2Index")))
+        self.ui.multiPhotopeakComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto3Index")))
+        self.ui.upperWindowMultiComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti1Index")))
+        self.ui.upperWindowMultiComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti2Index")))
+        self.ui.upperWindowMultiComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti3Index")))
+        self.ui.lowerWindowMultiComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti1Index")))
+        self.ui.lowerWindowMultiComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti2Index")))
+        self.ui.lowerWindowMultiComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti3Index")))
+        # Update photopeak1
+        # photopeak_value = self._parameterNode.GetParameter("MultiPhoto1")
+        # photopeak_index = self.ui.multiPhotopeakComboBox1.findText(photopeak_value)
+        # self.ui.multiPhotopeakComboBox1.setCurrentIndex(photopeak_index)
+        # last_text[self.ui.multiPhotopeakComboBox1.objectName] = self.ui.multiPhotopeakComboBox1.currentText
         # Scatter Stuff
         if self.ui.scatter_toggle.checked:
-            if self.ui.spect_upperwindow_combobox.currentText != lastUpperWindowSelection:
-                upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
-                upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
-                self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
-                last_text[self.ui.spect_upperwindow_combobox.objectName] = self.ui.spect_upperwindow_combobox.currentText
-            if self.ui.spect_lowerwindow_combobox.currentText != lastLowerWindowSelection:
-                lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
-                lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
-                self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
-                last_text[self.ui.spect_lowerwindow_combobox.objectName] = self.ui.spect_lowerwindow_combobox.currentText
-        if inputVolume1:
-            self.ui.outputVolumeSelector.baseName = inputVolume1.GetName() + " reconstructed"
+            upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
+            upperwindow_index = self.ui.spect_upperwindow_combobox.findText(upperwindow_value)
+            self.ui.spect_upperwindow_combobox.setCurrentIndex(upperwindow_index)
+            last_text[self.ui.spect_upperwindow_combobox.objectName] = self.ui.spect_upperwindow_combobox.currentText
+            # Lower
+            lowerwindow_value = self._parameterNode.GetParameter("LowerWindow")
+            lowerwindow_index = self.ui.spect_lowerwindow_combobox.findText(lowerwindow_value)
+            self.ui.spect_lowerwindow_combobox.setCurrentIndex(lowerwindow_index)
+            last_text[self.ui.spect_lowerwindow_combobox.objectName] = self.ui.spect_lowerwindow_combobox.currentText
         # All the GUI updates are done
         self._updatingGUIFromParameterNode = False
 
@@ -350,62 +375,130 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.SetNodeReferenceID("AnatomyPriorImage", self.ui.anatomyPriorImageNode.currentNodeID)
         self._parameterNode.SetParameter("Collimator", self.ui.spect_collimator_combobox.currentText)
         self._parameterNode.SetParameter("Scatter", self.ui.spect_scatter_combobox.currentText)
-        self._parameterNode.SetParameter("Photopeak", str(self.ui.photopeak_combobox.currentText))
+        self._parameterNode.SetParameter("PhotopeakIndex", str(self.ui.photopeak_combobox.currentIndex))
         self._parameterNode.SetParameter("UpperWindow", self.ui.spect_upperwindow_combobox.currentText)
         self._parameterNode.SetParameter("LowerWindow", self.ui.spect_lowerwindow_combobox.currentText)
         self._parameterNode.SetParameter("Algorithm", self.ui.algorithm_selector_combobox.currentText)
         self._parameterNode.SetParameter("Iterations", str(self.ui.osem_iterations_spinbox.value))
         self._parameterNode.SetParameter("Subsets", str(self.ui.osem_subsets_spinbox.value))
-        self._parameterNode.SetParameter("OutputVolume", self.ui.outputVolumeSelector.currentNodeID)
+        self._parameterNode.SetParameter("UncImage", self.ui.UncImageMRMLNodeComboBox.currentNodeID)
+        self._parameterNode.SetParameter("UncImageSegmentNodeID", self.ui.UncImageSegmentSelectorWidget.currentNodeID())
+        self._parameterNode.SetParameter("UncImageSegmentID", self.ui.UncImageSegmentSelectorWidget.currentSegmentID())
+        # Multi energy window
+        self._parameterNode.SetParameter("MultiPhoto1Index", str(self.ui.multiPhotopeakComboBox1.currentIndex))
+        self._parameterNode.SetParameter("MultiPhoto2Index", str(self.ui.multiPhotopeakComboBox2.currentIndex))
+        self._parameterNode.SetParameter("MultiPhoto3Index", str(self.ui.multiPhotopeakComboBox3.currentIndex))
+        self._parameterNode.SetParameter("UpperWindowMulti1Index", str(self.ui.upperWindowMultiComboBox1.currentIndex))
+        self._parameterNode.SetParameter("UpperWindowMulti2Index", str(self.ui.upperWindowMultiComboBox2.currentIndex))
+        self._parameterNode.SetParameter("UpperWindowMulti3Index", str(self.ui.upperWindowMultiComboBox3.currentIndex))
+        self._parameterNode.SetParameter("LowerWindowMulti1Index", str(self.ui.lowerWindowMultiComboBox1.currentIndex))
+        self._parameterNode.SetParameter("LowerWindowMulti2Index", str(self.ui.lowerWindowMultiComboBox2.currentIndex))
+        self._parameterNode.SetParameter("LowerWindowMulti3Index", str(self.ui.lowerWindowMultiComboBox3.currentIndex))
         self._parameterNode.EndModify(wasModified)
 
     def getProjectionData(self,node):
         inputdatapath = pathFromNode(node)
         energy_window,_,_ = getEnergyWindow(inputdatapath)
-        self.ui.spect_upperwindow_combobox.clear()
-        self.ui.spect_upperwindow_combobox.addItems(energy_window)
-        self.ui.spect_lowerwindow_combobox.clear()
-        self.ui.spect_lowerwindow_combobox.addItems(energy_window)
-        self.ui.photopeak_combobox.clear()
-        self.ui.photopeak_combobox.addItems(energy_window)
+        all_combo_boxes = [
+            self.ui.photopeak_combobox,
+            self.ui.spect_upperwindow_combobox,
+            self.ui.spect_lowerwindow_combobox,
+            self.ui.multiPhotopeakComboBox1,
+            self.ui.multiPhotopeakComboBox2,
+            self.ui.multiPhotopeakComboBox3,
+            self.ui.upperWindowMultiComboBox1,
+            self.ui.upperWindowMultiComboBox2,
+            self.ui.upperWindowMultiComboBox3,
+            self.ui.lowerWindowMultiComboBox1,
+            self.ui.lowerWindowMultiComboBox2,
+            self.ui.lowerWindowMultiComboBox3,
+        ]
+        for combo_box in all_combo_boxes:
+            combo_box.clear()
+            combo_box.addItems(energy_window)
+            
+    def _get_photopeak_scatter_idxs(self, file_NM):
+        _, mean_window_energies, idx_sorted = getEnergyWindow(file_NM)
+        # Photopeak
+        if self.ui.multiPhotopeakCheckbox.checked:
+            num_peaks = self.ui.numPhotopeaksSpinBox.value
+            photopeak_idx = [
+                idx_sorted[self.ui.multiPhotopeakComboBox1.currentIndex],
+                idx_sorted[self.ui.multiPhotopeakComboBox2.currentIndex],
+                idx_sorted[self.ui.multiPhotopeakComboBox3.currentIndex],
+            ][:num_peaks]
+            upperwindow_idx = [
+                idx_sorted[self.ui.upperWindowMultiComboBox1.currentIndex],
+                idx_sorted[self.ui.upperWindowMultiComboBox2.currentIndex],
+                idx_sorted[self.ui.upperWindowMultiComboBox3.currentIndex],
+            ][:num_peaks]
+            lowerwindow_idx = [
+                idx_sorted[self.ui.lowerWindowMultiComboBox1.currentIndex],
+                idx_sorted[self.ui.lowerWindowMultiComboBox2.currentIndex],
+                idx_sorted[self.ui.lowerWindowMultiComboBox3.currentIndex],
+            ][:num_peaks]
+            if not self.ui.scatter_toggle: # enforce none if not checked
+                upperwindow_idx = lowerwindow_idx = [None] * num_peaks
+        else:
+            photopeak_idx = idx_sorted[self.ui.photopeak_combobox.currentIndex]
+            lowerwindow_idx = idx_sorted[self.ui.spect_lowerwindow_combobox.currentIndex]
+            upperwindow_idx = idx_sorted[self.ui.spect_upperwindow_combobox.currentIndex]
+            if not self.ui.scatter_toggle: # enforce none if not checked
+                upperwindow_idx = lowerwindow_idx = None
+        return photopeak_idx, upperwindow_idx, lowerwindow_idx
 
     def onReconstructButton(self):
-        with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
-            # Create new volume node, if not selected yet
-            if not self.ui.outputVolumeSelector.currentNode():
-                self.ui.outputVolumeSelector.addNode()
-        #Scatter
-        # Necessarily disable
-        if not self.ui.scatter_toggle.checked:
-            upper_window_idx = lower_window_idx = None
-        elif self.ui.spect_scatter_combobox.currentText=='Dual Energy Window':
-            upper_window_idx = None
-            lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
-        elif self.ui.spect_scatter_combobox.currentText=='Triple Energy Window':
-            upper_window_idx = self.ui.spect_upperwindow_combobox.currentIndex
-            lower_window_idx = self.ui.spect_lowerwindow_combobox.currentIndex
-        recon_array, fileNMpaths= self.logic.reconstruct( 
-            files_NM = get_filesNM_from_NMNodes(self._projectionList),
+        files_NM = get_filesNM_from_NMNodes(self._projectionList)
+        photopeak_idx, upper_window_idx, lower_window_idx = self._get_photopeak_scatter_idxs(files_NM[0])
+        recon_volume_node = self.logic.reconstruct( 
+            files_NM = files_NM,
             attenuation_toggle = self.ui.attenuation_toggle.checked,
-            ct_file = self.ui.attenuationdata.currentNode(),
+            CT_node = self.ui.attenuationdata.currentNode(),
             psf_toggle = self.ui.psf_toggle.checked,
-            collimator = self.ui.spect_collimator_combobox.currentText, 
+            collimator_code = self.ui.spect_collimator_combobox.currentText, 
             intrinsic_resolution = self.ui.IntrinsicResolutionSpinBox.value,
-            peak_window_idx = self.ui.photopeak_combobox.currentIndex, 
-            upper_window_idx = upper_window_idx,
-            lower_window_idx = lower_window_idx,
-            algorithm = self.ui.algorithm_selector_combobox.currentText,
+            index_peak = photopeak_idx, 
+            index_upper = upper_window_idx,
+            index_lower = lower_window_idx,
+            algorithm_name = self.ui.algorithm_selector_combobox.currentText,
             prior_type = self.ui.priorFunctionSelector.currentText,
             prior_beta = self.ui.priorBetaSpinBox.value,
             prior_delta = self.ui.priorDeltaSpinBox.value,
             prior_gamma = self.ui.priorGammaSpinBox.value,
-            prior_anatomy_image_file=self.ui.anatomyPriorImageNode.currentNode(),
+            prior_anatomy_image_node = self.ui.anatomyPriorImageNode.currentNode(),
             N_prior_anatomy_nearest_neighbours = self.ui.nearestNeighboursSpinBox.value,
-            iter = self.ui.osem_iterations_spinbox.value, 
-            subset = self.ui.osem_subsets_spinbox.value
-    )
-        reconstructedDCMInstances = self.logic.stitchMultibed(recon_array, fileNMpaths)
-        self.logic.saveVolumeInTempDB(reconstructedDCMInstances, self.ui.outputVolumeSelector.currentNode())
+            n_iters = self.ui.osem_iterations_spinbox.value, 
+            n_subsets = self.ui.osem_subsets_spinbox.value,
+            store_recons= self.ui.storeItersCheckBox.checked
+        )
+        print(recon_volume_node.GetID())
+        self.logic.DisplayVolume(recon_volume_node)
+        
+    def onComputeUncertaintyButton(self):
+        # Compute uncertainties
+        recon_image_node = self.ui.UncImageMRMLNodeComboBox.currentNode()
+        mask = slicer.util.arrayFromSegmentBinaryLabelmap(
+            self.ui.UncImageSegmentSelectorWidget.currentNode(),
+            self.ui.UncImageSegmentSelectorWidget.currentSegmentID(),
+            recon_image_node
+        )
+        uncertainty_abs, uncertainty_pct = self.logic.compute_uncertainty(mask, recon_image_node.GetID())
+        # Update table
+        recon_image_node = self.ui.UncImageMRMLNodeComboBox.currentNode()
+        reconstruction_name = recon_image_node.GetName()
+        segmentation_name = self.ui.UncImageSegmentSelectorWidget.currentNode().GetName()
+        currentSegmentID = self.ui.UncImageSegmentSelectorWidget.currentSegmentID()
+        currentSegment = self.ui.UncImageSegmentSelectorWidget.currentNode().GetSegmentation().GetSegment(currentSegmentID)
+        mask_name = currentSegment.GetName()
+        rowIndex = self.uncertainty_table.AddEmptyRow()
+        self.uncertainty_table.GetTable().GetColumn(0).SetValue(rowIndex, reconstruction_name)
+        self.uncertainty_table.GetTable().GetColumn(1).SetValue(rowIndex, segmentation_name)
+        self.uncertainty_table.GetTable().GetColumn(2).SetValue(rowIndex, mask_name)
+        self.uncertainty_table.GetTable().GetColumn(3).SetValue(rowIndex, uncertainty_abs)
+        self.uncertainty_table.GetTable().GetColumn(4).SetValue(rowIndex, uncertainty_pct)
+        self.uncertainty_table.GetTable().Modified()
+        # Show table
+        displayTable(self.uncertainty_table)
         
     # -------------------------------------------------
     # ------------ Data Converters --------------------
