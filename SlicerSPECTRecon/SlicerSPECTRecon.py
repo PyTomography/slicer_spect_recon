@@ -154,6 +154,41 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             ['Image', 'Segmentation', 'Mask', 'Absolute Uncertainty', 'Percent Uncertainty'],
             ['string', 'string', 'string', 'float', 'float']
         )
+
+    def filterNMVolumes(self):
+        """Filter the projection data to show only Nuclear Medicine volumes."""
+        nmSOPClassUID = "1.2.840.10008.5.1.4.1.1.20"  # Standard SOPClassUID for PET images
+        for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
+            volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
+            uids = volNode.GetAttribute('DICOM.instanceUIDs')
+            if uids is not None:
+                uid = uids.split()[0]
+            filepath = slicer.dicomDatabase.fileForInstance(uid)
+            sopclassuidtag = '0008,0016'
+            sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
+            volNode.SetAttribute("SOPClassUID", sopClassUID) # Set attribute in volume with corresponding UID
+            if sopClassUID == nmSOPClassUID:
+                # Rule to filter through the nodes to add
+                self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", nmSOPClassUID)
+
+    def filterCTVolumes(self):
+        """Filter the attenuation data to show only CT volumes."""
+        ctSOPClassUID = "1.2.840.10008.5.1.4.1.1.2"  # Standard SOPClassUID for CT images
+        for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
+            volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
+            uids = volNode.GetAttribute('DICOM.instanceUIDs')
+            if uids is not None:
+                uid = uids.split()[0]
+            filepath = slicer.dicomDatabase.fileForInstance(uid)
+            sopclassuidtag = '0008,0016'
+            sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
+            if volNode.GetAttribute("SOPClassUID"):
+                pass
+            else:
+                volNode.SetAttribute("SOPClassUID", sopClassUID) # Set attribute in volume with corresponding UID
+            if sopClassUID == ctSOPClassUID:
+                # Rule to filter through the nodes to add
+                self.ui.attenuationdata.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", ctSOPClassUID) 
         
     def setupConnections(self):
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
@@ -218,6 +253,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def enter(self) -> None:
         """Called each time the user opens this module."""
         # Make sure parameter node exists and observed
+        self.filterNMVolumes() # Call filtering method
         self.initializeParameterNode()
         
     def exit(self) -> None:
@@ -260,6 +296,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             
     def hideShowItems(self, called=None, event=None):
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
+        self.filterCTVolumes()# Call filtering method
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         # Scatter stuff
