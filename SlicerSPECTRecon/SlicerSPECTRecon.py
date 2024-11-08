@@ -261,7 +261,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def enter(self) -> None:
         """Called each time the user opens this module."""
         # Make sure parameter node exists and observed
-        self.filterNMVolumes() # Call filtering method
+        #self.filterNMVolumes() # Call filtering method
         self.initializeParameterNode()
         
     def exit(self) -> None:
@@ -510,6 +510,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             prior_beta = self.ui.priorBetaSpinBox.value,
             prior_delta = self.ui.priorDeltaSpinBox.value,
             prior_gamma = self.ui.priorGammaSpinBox.value,
+            use_prior_image= self.ui.usePriorAnatomicalCheckBox.checked,
             prior_anatomy_image_node = self.ui.anatomyPriorImageNode.currentNode(),
             N_prior_anatomy_nearest_neighbours = self.ui.nearestNeighboursSpinBox.value,
             n_iters = self.ui.osem_iterations_spinbox.value, 
