@@ -145,6 +145,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # # These connections ensure that we update parameter node when scene is closed
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
+        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.onMRMLSceneNodeAdded)
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
         self.setupConnections()
@@ -157,23 +158,12 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def filterNMVolumes(self):
         """Filter the projection data to show only Nuclear Medicine volumes."""
+        self.ui.NM_data_selector.noneEnabled = False
+        self.ui.NM_data_selector.addEnabled = False
         nmSOPClassUID = "1.2.840.10008.5.1.4.1.1.20"  # Standard SOPClassUID for PET images
-        sopclassuidtag = '0008,0016'
-        for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
-            volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
-            uids = volNode.GetAttribute('DICOM.instanceUIDs')
-            if uids is not None:
-                uid = uids.split()
-            if len(uid)>1:
-                filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in uid]
-                for filepath in filepaths:
-                    sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
-                    volNode.SetAttribute("SOPClassUID", sopClassUID)
-            else:
-                filepath = slicer.dicomDatabase.fileForInstance(uid[0])
-                sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
-                volNode.SetAttribute("SOPClassUID", sopClassUID)
         self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", nmSOPClassUID)
+        self.ui.NM_data_selector.setMRMLScene(None)  # Clear the combobox first
+        self.ui.NM_data_selector.setMRMLScene(slicer.mrmlScene)
 
     def filterCTVolumes(self):
         """Filter the attenuation data to show only CT volumes."""
@@ -261,8 +251,26 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def enter(self) -> None:
         """Called each time the user opens this module."""
         # Make sure parameter node exists and observed
-        #self.filterNMVolumes() # Call filtering method
         self.initializeParameterNode()
+        self.filterNMVolumes()
+
+    def onMRMLSceneNodeAdded(self, caller, event):
+        for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
+            volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
+            uids = volNode.GetAttribute('DICOM.instanceUIDs')
+            if uids:
+                uid = uids.split()
+                sopclassuidtag = '0008,0016'
+                if len(uid) > 1:
+                    filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in uid]
+                    for filepath in filepaths:
+                        sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
+                        volNode.SetAttribute("SOPClassUID", sopClassUID)
+                else:
+                    filepath = slicer.dicomDatabase.fileForInstance(uid[0])
+                    sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
+                    volNode.SetAttribute("SOPClassUID", sopClassUID)
+        self.filterNMVolumes()
         
     def exit(self) -> None:
         """Called each time the user opens a different module."""
@@ -279,6 +287,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
         if self.parent.isEntered:
             self.initializeParameterNode()
+        self.filterNMVolumes()
 
     def initializeParameterNode(self):
         """
