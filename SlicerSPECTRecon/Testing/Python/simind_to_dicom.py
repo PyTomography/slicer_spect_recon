@@ -7,11 +7,12 @@ from pytomography.io.SPECT import dicom
 import numpy as np
 import pydicom
 import zipfile
+import logging
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
-from Logic.simindToDicom import *
-from Logic.testutils_builder import *
+from Logic.SimindToDicom import *
+from Testing.Python.utils import *
 
-class simindToDicomConverterTest(ScriptedLoadableModuleTest):
+class SimindToDicomConverterTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
     Uses ScriptedLoadableModuleTest base class, available at:
@@ -88,8 +89,4 @@ class simindToDicomConverterTest(ScriptedLoadableModuleTest):
         self.assertTrue(mse_error<0.05)
         self.cleanUP()
         self.delayDisplay("Simind conversion to dicom test passed!")
-        
-
-
-
-    
+        logging.info('Simind conversion to dicom test passed!')

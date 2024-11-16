@@ -1,4 +1,5 @@
 import slicer
+import vtk
 
 def getAllScalarVolumeNodes():
     scene = slicer.mrmlScene
@@ -62,5 +63,25 @@ def get_filesNM_from_NMNodes(NM_nodes):
         path = pathFromNode(NM_node)
         files_NM.append(path)
     return files_NM
+
+def createTable(column_names, column_types):
+    table = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTableNode")
+    for column_name, column_type in zip(column_names, column_types):
+        if column_type == 'string':
+            col = table.AddColumn()
+        elif column_type == 'float':
+            col = table.AddColumn(vtk.vtkDoubleArray())
+        col.SetName(column_name)
+        table.SetColumnTitle(column_name, column_name)
+    return table
+
+def displayTable(table):
+    currentLayout = slicer.app.layoutManager().layout
+    layoutWithTable = slicer.modules.tables.logic().GetLayoutWithTable(currentLayout)
+    slicer.app.layoutManager().setLayout(layoutWithTable)
+    slicer.app.applicationLogic().GetSelectionNode().SetActiveTableID(table.GetID())
+    table.SetUseColumnTitleAsColumnHeader(True)
+    slicer.app.applicationLogic().PropagateTableSelection()
+    
 
 
