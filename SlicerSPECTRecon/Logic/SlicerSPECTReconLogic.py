@@ -77,6 +77,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         prior_beta: float,
         prior_delta: float,
         prior_gamma: float,
+        use_prior_image: bool,
         prior_anatomy_image_node: slicer.vtkMRMLScalarVolumeNode,
         N_prior_anatomy_nearest_neighbours: int,
         n_iters: int,
@@ -110,9 +111,18 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             # Build likelihood
             likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
             # Select prior
-            prior = selectPrior(prior_type, prior_beta, prior_delta, prior_gamma, 
-                                files_NM, bed_idx, index_peak, N_prior_anatomy_nearest_neighbours, 
-                                prior_anatomy_image_node)
+            prior = selectPrior(
+                prior_type,
+                prior_beta,
+                prior_delta,
+                prior_gamma, 
+                files_NM,
+                bed_idx,
+                index_peak,
+                use_prior_image,
+                N_prior_anatomy_nearest_neighbours, 
+                prior_anatomy_image_node
+            )
             # Build algorithm
             recon_algorithm = selectAlgorithm(algorithm_name, likelihood, prior)
             recon_algorithms.append(recon_algorithm)
