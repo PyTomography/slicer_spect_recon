@@ -19,6 +19,7 @@ def loadFromTempDB(path):
         patientUIDs = db.patients()
         for patientUID in patientUIDs:
             loadedNodeIDs.extend(DICOMUtils.loadPatientByUID(patientUID))
+    print(loadedNodeIDs)
     return loadedNodeIDs
 
 def getVolumeNode(NodeIDs):
@@ -26,22 +27,22 @@ def getVolumeNode(NodeIDs):
         volumeNode = slicer.mrmlScene.GetNodeByID(NodeIDs[0])
         return volumeNode
     
-def displayVolumeInViewer(volumeNode, outputVolumeNode):
-    outputVolumeNode.SetAndObserveImageData(volumeNode.GetImageData())
-    outputVolumeNode.CreateDefaultDisplayNodes() 
+def displayVolumeInViewer(volumeNode):
+    volumeNode.SetName('reconstructed image')
     petColorNode = slicer.util.getNode('PET-DICOM')
     if petColorNode:
-        outputVolumeNode.GetDisplayNode().SetAndObserveColorNodeID(petColorNode.GetID())
+        volumeNode.GetDisplayNode().SetAndObserveColorNodeID(petColorNode.GetID())
     else:
         slicer.util.errorDisplay("PET-DICOM color map not found.")
     window = volumeNode.GetDisplayNode().GetWindow()
     level = volumeNode.GetDisplayNode().GetLevel()
-    outputVolumeNode.GetDisplayNode().SetWindow(window)
-    outputVolumeNode.GetDisplayNode().SetLevel(level)
+    volumeNode.GetDisplayNode().SetWindow(window)
+    volumeNode.GetDisplayNode().SetLevel(level)
     volumeMatrix = vtk.vtkMatrix4x4()
     volumeNode.GetRASToIJKMatrix(volumeMatrix)
-    outputVolumeNode.SetRASToIJKMatrix(volumeMatrix)
+    volumeNode.SetRASToIJKMatrix(volumeMatrix)
 
-def removeNode(volumeNode, dir):
+def removeNode(volumeNode, dir=None):
     slicer.mrmlScene.RemoveNode(volumeNode)
-    shutil.rmtree(dir)
+    if dir is not None:
+        shutil.rmtree(dir)

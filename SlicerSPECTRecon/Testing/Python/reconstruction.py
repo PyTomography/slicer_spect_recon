@@ -11,20 +11,16 @@ import torch
 import ctk
 import zipfile
 from Logic.SlicerSPECTReconLogic import SlicerSPECTReconLogic
-from Logic.volumeutils import *
-from Logic.likelihood import *
-from Logic.algorithms import *
-from Logic.systemMatrix import *
-from Logic.priors import *
-from Logic.transforms import *
-from Logic.vtkkmrmlutils import *
-from Logic.getmetadatautils import *
-from Logic.simindToDicom import *
+from Logic.VolumeUtils import *
+from Logic.Algorithms import *
+from Logic.Priors import *
+from Logic.VtkkmrmlUtils import *
+from Logic.MetadataUtils import *
+from Logic.SimindToDicom import *
 import json
-from Logic.testutils_builder import *
-from Logic.dicomvalues import DicomValues
+from Testing.Python.utils import *
 
-class SlicerSPECTReconTest(ScriptedLoadableModuleTest):
+class ReconstructionTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
     Uses ScriptedLoadableModuleTest base class, available at:

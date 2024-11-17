@@ -145,7 +145,7 @@ def simind2DICOMAmap(
     # Create and save DICOM file
     Path(save_path).resolve().mkdir(parents=True, exist_ok=False)
     SOP_instance_UID = dicom_creation.generate_uid()
-    SOP_class_UID = '1.2.840.10008.5.1.4.1.1.20'
+    SOP_class_UID = '1.2.840.10008.5.1.4.1.1.2'
     ds = dicom_creation.generate_base_dataset(SOP_instance_UID, SOP_class_UID)
     # required by DICOM standard
     ds.SpecificCharacterSet = "ISO_IR 100"
@@ -172,6 +172,7 @@ def simind2DICOMAmap(
     ds.PatientID = '001'
     # image
     ds.RescaleSlope = 1/scale_factor
+    ds.RescaleIntercept = 0
     ds.Rows = amap.shape[1]
     ds.Columns = amap.shape[2]
     ds.PixelSpacing = [dx, dy]
