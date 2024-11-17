@@ -4,7 +4,7 @@ import importlib
 def ensure_packages_installed():
     """Ensure required packages are installed."""
     required_packages = {
-        "pytomography": "3.2.3",
+        "pytomography": "3.2.4",
         "beautifulsoup4": None,
     }
     for package, version in required_packages.items():
