@@ -21,6 +21,7 @@ The purpose of this module is to enable reconstruction of raw SPECT projection d
 
  ![inputdata](images/input.png)
 
+
 2. **System Modeling:** The system modeling component is used to specify the required phenomenon to consider during reconstruction: that is, attenuation correction, collimator detector response modeling, and scatter correction.
     * *Attenuation Correction*: The user optionally selects a pre-loaded CT image from the drop down menu; this CT image is automatically converted into an attenuation map and used for attenuation correction during reconstruction.
     * *Collimator Detector Response Modeling*: The user specifies the collimator code (see [here](https://pytomography.readthedocs.io/en/latest/external_data.html)) corresponding to the collimator used during acquisition. The intrinsic resolution of the scintillator crystals (in FHWM) can also be included (typically around 0.36cm - 0.38cm for NaI crystals).
@@ -28,9 +29,11 @@ The purpose of this module is to enable reconstruction of raw SPECT projection d
 
  ![modeling](images/systemmodeling.png)
 
+
 3. **Likelihood:** This module allows users to choose their preferred likelihood function. It's currently fixed to the `PoissonLogLikelihood` option as this statistically characterizes the count distribution obtained in SPECT imaging, but future releases might expand on other options.
 
  ![likelihood](images/likelihood.png)
+
 
 4. **Reconstruction Algorithm:** The reconstruction algorithms module allows users to select the algorithm used to reconstruct the raw projection data. Currently, the ordered subset expectation maximum (OSEM), block sequential regularized expectation maximum (BSREM), and ordered subset maximum a posterior one step late (OSMAPOSL) are supported.
     * Regularized algorithms can include a prior function from options such as `RelativeDifferencePenalty`, `LogCosh`, and `Quadratic` priors. Parameters for each prior are specified in the [PyTomography documentation](https://pytomography.readthedocs.io/en/latest/autoapi/pytomography/priors/index.html)
@@ -90,7 +93,7 @@ Once Slicer is restarted, the SlicerSPECTRecon module will be available from *Al
 
 ![modules_list](images/modules_list.png)
 
-# LIMITATIONS
+# Limitations
 
 1. The module requires some basic knowledge of Slicer modules from the user, specifically DICOM import and data management.
 2. Currently, the software only supports dual head SPECT systems with parallel hole collimators (and has only been tested on Siemens Symbia and GE Discovery scanners). 
