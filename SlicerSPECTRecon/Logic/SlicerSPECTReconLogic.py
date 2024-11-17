@@ -17,6 +17,7 @@ from pytomography.algorithms import PGAAMultiBedSPECT
 from pytomography.callbacks import DataStorageCallback
 from Logic.VolumeUtils import *
 from Logic.Algorithms import *
+from Logic.Callbacks import *
 from Logic.Priors import *
 from Logic.VtkkmrmlUtils import *
 from Logic.MetadataUtils import *
@@ -43,7 +44,10 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         obj2obj_transforms = []
         if attenuation_toggle:
             files_CT = filesFromNode(ct_file)
-            attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak)
+            try: # typical DICOM CT
+                attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak)
+            except: # if saved by SIMIND
+                attenuation_map = dicom.get_attenuation_map_from_file(files_CT[0])
             att_transform = SPECTAttenuationTransform(attenuation_map)
             obj2obj_transforms.append(att_transform)
         if psf_toggle:
@@ -63,6 +67,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
 
     def reconstruct(
         self,
+        progressDialog: slicer.qMRMLProgressDialog,
         files_NM: Sequence[str],
         attenuation_toggle: bool,
         CT_node: slicer.vtkMRMLScalarVolumeNode,
@@ -82,7 +87,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         N_prior_anatomy_nearest_neighbours: int,
         n_iters: int,
         n_subsets: int,
-        store_recons: bool = False
+        store_recons: bool = False,
     ): 
         if index_peak is None:
             logging.error("Please select a photopeak energy window")
@@ -126,16 +131,25 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             # Build algorithm
             recon_algorithm = selectAlgorithm(algorithm_name, likelihood, prior)
             recon_algorithms.append(recon_algorithm)
-        recon_algorithm_all_beds = PGAAMultiBedSPECT(files_NM, recon_algorithms)  
+        recon_algorithm_all_beds = PGAAMultiBedSPECT(files_NM, recon_algorithms)
         if store_recons:
-            callbacks = [DataStorageCallback(r.likelihood, r.object_prediction) for r in recon_algorithm_all_beds.reconstruction_algorithms]
+            # Logs progress
+            callback0 = DataStorageWithLoadingCallback(
+                recon_algorithm_all_beds.reconstruction_algorithms[0].likelihood, recon_algorithm_all_beds.reconstruction_algorithms[0].object_prediction,
+                progressDialog,
+                n_iters,
+                n_subsets
+            )
+            callbacks = [callback0] + [DataStorageCallback(r.likelihood, r.object_prediction) for r in recon_algorithm_all_beds.reconstruction_algorithms[1:]]
             reconstructed_image_multibed = recon_algorithm_all_beds(n_iters, n_subsets, callback=callbacks)
             volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM)
             # Store information for accessing later
             self.stored_recon_iters[volume_node.GetID()] = [recon_algorithm_all_beds, callbacks]
         else:
-            reconstructed_image_multibed = recon_algorithm_all_beds(n_iters, n_subsets)
+            callback = LoadingCallback(progressDialog, n_iters, n_subsets)
+            reconstructed_image_multibed = recon_algorithm_all_beds(n_iters, n_subsets, callback=callback)
             volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM)
+        progressDialog.close()
         return volume_node
     
     def compute_uncertainty(self, mask, recon_node_id):

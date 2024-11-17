@@ -128,11 +128,13 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode = None
         self._updatingGUIFromParameterNode = False
         self._projectionList = None
+        print('init activated')
 
     def setup(self):
         """
         Called when the user opens the module the first time and the widget is initialized.
         """
+        print('setup activated')
         ScriptedLoadableModuleWidget.setup(self)
         # Load widget from .ui file (created by Qt Designer).
         # Additional widgets can be instantiated manually and added to self.layout.
@@ -156,14 +158,14 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             ['string', 'string', 'string', 'float', 'float']
         )
 
-    def filterNMVolumes(self):
-        """Filter the projection data to show only Nuclear Medicine volumes."""
-        self.ui.NM_data_selector.noneEnabled = False
-        self.ui.NM_data_selector.addEnabled = False
-        nmSOPClassUID = "1.2.840.10008.5.1.4.1.1.20"  # Standard SOPClassUID for PET images
-        self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", nmSOPClassUID)
-        self.ui.NM_data_selector.setMRMLScene(None)  # Clear the combobox first
-        self.ui.NM_data_selector.setMRMLScene(slicer.mrmlScene)
+    # def filterNMVolumes(self):
+    #     """Filter the projection data to show only Nuclear Medicine volumes."""
+    #     self.ui.NM_data_selector.noneEnabled = False
+    #     self.ui.NM_data_selector.addEnabled = False
+    #     nmSOPClassUID = "1.2.840.10008.5.1.4.1.1.20"  # Standard SOPClassUID for PET images
+    #     self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", nmSOPClassUID)
+    #     self.ui.NM_data_selector.setMRMLScene(None)  # Clear the combobox first
+    #     self.ui.NM_data_selector.setMRMLScene(slicer.mrmlScene)
 
     def filterCTVolumes(self):
         """Filter the attenuation data to show only CT volumes."""
@@ -246,11 +248,12 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def cleanup(self) -> None:
         """Called when the application closes and the module widget is destroyed."""
+        print('cleanup activated')
         self.removeObservers()
 
     def enter(self) -> None:
         """Called each time the user opens this module."""
-        # Make sure parameter node exists and observed
+        print('enter Activiated')
         self.initializeParameterNode()
         self.processExistingNMVolumes()
         self.filterNMVolumes()
@@ -303,17 +306,20 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def exit(self) -> None:
         """Called each time the user opens a different module."""
+        print('exit Activiated')
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
     def onSceneStartClose(self, caller, event) -> None:
         """Called just before the scene is closed."""
         # Parameter node will be reset, do not use it anymore
+        print('SceneStartClose Activiated')
         self.setParameterNode(None)
         
     def onSceneEndClose(self, caller, event) -> None:
         """Called just after the scene is closed."""
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
+        print('SceneEndClose Activiated')
         if self.parent.isEntered:
             self.initializeParameterNode()
 
@@ -321,11 +327,13 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Ensure parameter node exists and observed.
         """
+        print('initializeParameterNode Activiated')
         # Parameter node stores all user choices in parameter values, node selections, etc.
         # so that when the scene is saved and reloaded, these settings are restored.
         self.setParameterNode(self.logic.getParameterNode())
         
     def setParameterNode(self, inputParameterNode):
+        print('setParameterNode Activiated')
         """
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
@@ -402,30 +410,27 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This method is called whenever parameter node is changed.
         The module GUI is updated to show the current state of the parameter node.
         """
+        print('updateGUIFromParameterNode Activiated')
         if self._updatingGUIFromParameterNode:
             return
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
+        
         inputVolume1 = self._parameterNode.GetNodeReference("InputVolume1")
-        if inputVolume1 and self._parameterNode.GetParameter("PhotopeakIndex") :
+        if inputVolume1 and self._parameterNode.GetParameter("PhotopeakIndex"):
+            # Update photopeak
             self.getProjectionData(inputVolume1)
+            self.ui.photopeak_combobox.setCurrentIndex(int(self._parameterNode.GetParameter("PhotopeakIndex")))
+            self.ui.multiPhotopeakComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto1Index")))
+            self.ui.multiPhotopeakComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto2Index")))
+            self.ui.multiPhotopeakComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto3Index")))
+            self.ui.upperWindowMultiComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti1Index")))
+            self.ui.upperWindowMultiComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti2Index")))
+            self.ui.upperWindowMultiComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti3Index")))
+            self.ui.lowerWindowMultiComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti1Index")))
+            self.ui.lowerWindowMultiComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti2Index")))
+            self.ui.lowerWindowMultiComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti3Index")))
         last_text = {}
-        # Update photopeak
-        self.ui.photopeak_combobox.setCurrentIndex(int(self._parameterNode.GetParameter("PhotopeakIndex")))
-        self.ui.multiPhotopeakComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto1Index")))
-        self.ui.multiPhotopeakComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto2Index")))
-        self.ui.multiPhotopeakComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("MultiPhoto3Index")))
-        self.ui.upperWindowMultiComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti1Index")))
-        self.ui.upperWindowMultiComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti2Index")))
-        self.ui.upperWindowMultiComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("UpperWindowMulti3Index")))
-        self.ui.lowerWindowMultiComboBox1.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti1Index")))
-        self.ui.lowerWindowMultiComboBox2.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti2Index")))
-        self.ui.lowerWindowMultiComboBox3.setCurrentIndex(int(self._parameterNode.GetParameter("LowerWindowMulti3Index")))
-        # Update photopeak1
-        # photopeak_value = self._parameterNode.GetParameter("MultiPhoto1")
-        # photopeak_index = self.ui.multiPhotopeakComboBox1.findText(photopeak_value)
-        # self.ui.multiPhotopeakComboBox1.setCurrentIndex(photopeak_index)
-        # last_text[self.ui.multiPhotopeakComboBox1.objectName] = self.ui.multiPhotopeakComboBox1.currentText
         # Scatter Stuff
         if self.ui.scatter_toggle.checked:
             upperwindow_value = self._parameterNode.GetParameter("UpperWindow")
@@ -441,6 +446,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._updatingGUIFromParameterNode = False
 
     def updateParameterNodeFromGUI(self, caller=None, event=None):
+        print('updateParameterNodeFromGUI')
         """
         This method is called when the user makes any change in the GUI.
         The changes are saved into the parameter node (so that they are restored when the scene is saved and loaded).
@@ -477,6 +483,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.SetParameter("LowerWindowMulti2Index", str(self.ui.lowerWindowMultiComboBox2.currentIndex))
         self._parameterNode.SetParameter("LowerWindowMulti3Index", str(self.ui.lowerWindowMultiComboBox3.currentIndex))
         self._parameterNode.EndModify(wasModified)
+        self.updateGUIFromParameterNode()
 
     def getProjectionData(self,node):
         inputdatapath = pathFromNode(node)
@@ -530,9 +537,14 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return photopeak_idx, upperwindow_idx, lowerwindow_idx
 
     def onReconstructButton(self):
+        progress = slicer.util.createProgressDialog()
+        progress.labelText = "Reconstructing..."
+        progress.value = 0
+        progress.setCancelButton(None)
         files_NM = get_filesNM_from_NMNodes(self._projectionList)
         photopeak_idx, upper_window_idx, lower_window_idx = self._get_photopeak_scatter_idxs(files_NM[0])
         recon_volume_node = self.logic.reconstruct( 
+            progressDialog=progress,
             files_NM = files_NM,
             attenuation_toggle = self.ui.attenuation_toggle.checked,
             CT_node = self.ui.attenuationdata.currentNode(),
@@ -554,7 +566,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             n_subsets = self.ui.osem_subsets_spinbox.value,
             store_recons= self.ui.storeItersCheckBox.checked
         )
-        print(recon_volume_node.GetID())
+        #progress.reset()
         self.logic.DisplayVolume(recon_volume_node)
         
     def onComputeUncertaintyButton(self):
