@@ -252,25 +252,54 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """Called each time the user opens this module."""
         # Make sure parameter node exists and observed
         self.initializeParameterNode()
+        self.processExistingNMVolumes()
         self.filterNMVolumes()
 
     def onMRMLSceneNodeAdded(self, caller, event):
+        """Triggered when a node is added to the scene."""
+        addedNodes = []
         for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
             volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
-            uids = volNode.GetAttribute('DICOM.instanceUIDs')
-            if uids:
-                uid = uids.split()
-                sopclassuidtag = '0008,0016'
-                if len(uid) > 1:
-                    filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in uid]
-                    for filepath in filepaths:
+            if not volNode.GetAttribute("SOPClassUID"):
+                uids = volNode.GetAttribute('DICOM.instanceUIDs')
+                if uids:
+                    uid = uids.split()
+                    sopclassuidtag = '0008,0016'
+                    sopClassUID = None
+                    if len(uid) > 1:
+                        filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in uid]
+                        for filepath in filepaths:
+                            sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
+                            volNode.SetAttribute("SOPClassUID", sopClassUID)
+                    else:
+                        filepath = slicer.dicomDatabase.fileForInstance(uid[0])
                         sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
                         volNode.SetAttribute("SOPClassUID", sopClassUID)
-                else:
-                    filepath = slicer.dicomDatabase.fileForInstance(uid[0])
-                    sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
-                    volNode.SetAttribute("SOPClassUID", sopClassUID)
-        self.filterNMVolumes()
+                    print(f"Updated SOPClassUID for node: {volNode.GetName()}")
+                addedNodes.append(volNode)
+        if addedNodes:
+            self.filterNMVolumes()
+
+    def processExistingNMVolumes(self):
+        """Process all existing volume nodes in the scene."""
+        for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
+            volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
+            if not volNode.GetAttribute("SOPClassUID"):
+                uids = volNode.GetAttribute('DICOM.instanceUIDs')
+                if uids:
+                    uid = uids.split()
+                    sopclassuidtag = '0008,0016'
+                    sopClassUID = None
+                    if len(uid) > 1:
+                        filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in uid]
+                        for filepath in filepaths:
+                            sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
+                            volNode.SetAttribute("SOPClassUID", sopClassUID)
+                    else:
+                        filepath = slicer.dicomDatabase.fileForInstance(uid[0])
+                        sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
+                        volNode.SetAttribute("SOPClassUID", sopClassUID)
+                    print(f"Processed existing volume node: {volNode.GetName()}")
         
     def exit(self) -> None:
         """Called each time the user opens a different module."""
@@ -287,7 +316,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
         if self.parent.isEntered:
             self.initializeParameterNode()
-        self.filterNMVolumes()
 
     def initializeParameterNode(self):
         """
