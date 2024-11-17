@@ -37,8 +37,8 @@ Once Slicer is restarted, the SlicerSPECTRecon module will be available from *Al
 
 <img src="images/modules_list.png" width="300"/>
 
-## Tutorial Data
-The tutorial data can be obtained [at the following link](https://zenodo.org/records/14172228); it will be used in the subsequent examples in the user manual.
+## Tutorial
+There is a tutorial demonstrating how to use the extension [on youtube at this link](https://www.youtube.com/watch?v=DzV1soWTzEA). The tutorial data can be obtained [at the following link on zenodo](https://zenodo.org/records/14172228).
 
 ## Data Loading
 
