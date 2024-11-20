@@ -52,13 +52,13 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         """Run as few or as many tests as needed here."""
         self.setUp()
         self.load_ref_data()
-        # self.test_load_projection_data()
-        # self.test_projection_metadata()
-        # self.test_attenuation_map_alignment()
-        # self.test_psf_metadata()
-        # self.test_scatter()
-        # self.run_test_osem()
-        # self.run_test_bsrem()
+        self.test_load_projection_data()
+        self.test_projection_metadata()
+        self.test_attenuation_map_alignment()
+        self.test_psf_metadata()
+        self.test_scatter()
+        self.run_test_osem()
+        self.run_test_bsrem()
         self.run_test_osmaposl()
         self.cleanUP()
     
@@ -440,7 +440,7 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
             algorithm_settings = json.load(settingsfile)
         bsrem_recon_path = self.testDir/'refs'/'reconstructions'
         #############Test RelativeDifferencePenalty Prior#############
-        test_relativeDifferencePenalty_prior = False
+        test_relativeDifferencePenalty_prior = True
         if test_relativeDifferencePenalty_prior:
             prior_type = "RelativeDifferencePenalty"
             self.delayDisplay(f"Testing BSREM with {prior_type}!")
@@ -482,7 +482,7 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
             self.assertTrue(logcosh_mse_error<0.05)
             self.delayDisplay("BSREM log cosh prior test passed!")
         ################Test Quadratic Prior#####################
-        test_quadratic_prior = False
+        test_quadratic_prior = True
         if test_quadratic_prior:
             prior_type = "Quadratic"
             self.delayDisplay(f"Testing BSREM with {prior_type}!")
@@ -510,7 +510,7 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
             algorithm_settings = json.load(settingsfile)
         osmaposl_recon_path = self.testDir/'refs'/'reconstructions'
         #############Test RelativeDifferencePenalty Prior#########################
-        test_relativeDifferencePenalty_prior = False
+        test_relativeDifferencePenalty_prior = True
         if test_relativeDifferencePenalty_prior:
             prior_type = "RelativeDifferencePenalty"
             self.delayDisplay(f"Testing OSMAPOSL with {prior_type}!")
