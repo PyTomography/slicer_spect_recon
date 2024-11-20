@@ -97,9 +97,9 @@ class SlicerSPECTRecon(ScriptedLoadableModule):
         """
         logging.info("\n******* Starting Tests of SlicerSPECTRecon **********\n")
         # Test SIMIND Converter
-        # testCase = SimindToDicomConverterTest()
-        # testCase.messageDelay = msec
-        # testCase.runTest(**kwargs)
+        testCase = SimindToDicomConverterTest()
+        testCase.messageDelay = msec
+        testCase.runTest(**kwargs)
         # Test Reconstructions
         testCase = ReconstructionTest()
         testCase.messageDelay = msec
