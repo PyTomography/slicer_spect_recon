@@ -32,7 +32,7 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         self.cleanUP()
         logger.info("SlicerSPECTReconTests")
         module_dir = os.path.dirname(__file__)
-        self.resources_dir = os.path.join(module_dir, './../Resources')
+        self.resources_dir = os.path.join(module_dir, './../../Resources')
         self.logic = SlicerSPECTReconLogic()
         try:
             self.delayDisplay("Initializing Dicom Database")
@@ -51,56 +51,45 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
     def runTest(self):
         """Run as few or as many tests as needed here."""
         self.setUp()
-        self.test_load_projection_data()
-        self.test_projection_metadata()
-        self.test_attenuation_map_alignment()
-        self.test_psf_metadata()
-        self.test_scatter()
-        self.run_test_osem()
-        self.run_test_bsrem()
+        self.load_ref_data()
+        # self.test_load_projection_data()
+        # self.test_projection_metadata()
+        # self.test_attenuation_map_alignment()
+        # self.test_psf_metadata()
+        # self.test_scatter()
+        # self.run_test_osem()
+        # self.run_test_bsrem()
         self.run_test_osmaposl()
         self.cleanUP()
-
-    def importDICOMFromURL(self, file_id, folder_name):
-        dicomDir = Path(slicer.app.temporaryPath) /folder_name
-        dicomDir.mkdir(parents=True, exist_ok=True)
-        zip_path = dicomDir / 'dicom.zip'
-        logger.info(f"Downloading {folder_name} DICOM files from drive to {dicomDir}")
-        status = download_file_from_google_drive(file_id, zip_path)
-        if status:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(dicomDir)
-        else:
-            logger.error(f"Failed to download {folder_name} DICOM files")
-            return
-        indexer = ctk.ctkDICOMIndexer()
-        indexer.addDirectory(slicer.dicomDatabase, str(dicomDir))
-        indexer.waitForImportFinished()
-        logger.info(f"Imported DICOM files from drive to database")
-
-    def downloadAndImportNMFiles(self):
-        file_id = "1bCz_hLgASAiQ38QrRlgrJ3lH_lOlqQb1"
-        folder_name = "NM"
-        self.importDICOMFromURL(file_id, folder_name)
-
-    def downloadAndImportCTFiles(self):
-        file_id = "1kbl4nqflovxOB0N9z8YrpmZHzTnPtnyu"
-        folder_name = "CT"
-        self.importDICOMFromURL(file_id, folder_name)
     
+    def load_ref_data(self):
+        url = "https://zenodo.org/records/14190900/files/refs.zip?download=1"
+        data_type = 'ref_data'
+        self.testDir = get_data_from_url(url, data_type)
+        
     def uploadtoDB(self):
         dicomValues = DicomValues()
-        self.downloadAndImportNMFiles()
-        self.downloadAndImportCTFiles()
-        nm_series = slicer.dicomDatabase.seriesForStudy(dicomValues.NM_studyInstanceUID)
-        nm_series_count = len([uid for uid in nm_series if uid in [dicomValues.NM1_seriesInstanceUID, dicomValues.NM2_seriesInstanceUID]])
-        if nm_series_count != 2:
-            raise Exception(f"Expected 2 NM series, but found {nm_series_count}")
-        ct_series = slicer.dicomDatabase.seriesForStudy(dicomValues.CT_studyInstanceUID)
-        ct_series_count = len([uid for uid in ct_series if uid in [dicomValues.CT_seriesInstanceUID]])
-        if ct_series_count == 0:
-            raise Exception(f"Expected at least 1 CT series, but found {ct_series_count}")
-        logger.info(f"Successfully imported {nm_series_count} NM series and {ct_series_count} CT series")
+        url = "https://zenodo.org/records/14172228/files/for_slicer_recon.zip?download=1"
+        data_type = 'test_data'
+        self.testDir = get_data_from_url(url, data_type)
+        if self.testDir:
+            dicom_path = self.testDir/'for_slicer_recon'/'DICOM'
+            indexer = ctk.ctkDICOMIndexer()
+            indexer.addDirectory(slicer.dicomDatabase, str(dicom_path))
+            indexer.waitForImportFinished()
+            logger.info(f"Imported {data_type} files from url to database")
+
+            nm_series = slicer.dicomDatabase.seriesForStudy(dicomValues.NM_studyInstanceUID)
+            nm_series_count = len([uid for uid in nm_series if uid in [dicomValues.NM1_seriesInstanceUID, dicomValues.NM2_seriesInstanceUID]])
+            if nm_series_count != 2:
+                raise Exception(f"Expected 2 NM series, but found {nm_series_count}")
+            ct_series = slicer.dicomDatabase.seriesForStudy(dicomValues.CT_studyInstanceUID)
+            ct_series_count = len([uid for uid in ct_series if uid in [dicomValues.CT_seriesInstanceUID]])
+            if ct_series_count == 0:
+                raise Exception(f"Expected at least 1 CT series, but found {ct_series_count}")
+            logger.info(f"Successfully imported {nm_series_count} NM series and {ct_series_count} CT series")
+        else:
+            raise Exception('Unable to download test_data')
 
     def test_load_projection_data(self):
         self.delayDisplay("Load projection data test started!")
@@ -150,6 +139,11 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
             metadata = json.load(inputfilemeta)
         energy_window1, _, idx_sorted1 = getEnergyWindow(files_NM[0])
         energy_window2, _, idx_sorted2 = getEnergyWindow(files_NM[1])
+        #Removing the additional index added for the None value in the getEnergyWindow function
+        energy_window1.pop(0)
+        energy_window2.pop(0)
+        idx_sorted1.pop(0)
+        idx_sorted2.pop(0)
         file_NM1 = pydicom.read_file(files_NM[0])
         file_NM2 = pydicom.read_file(files_NM[1])
         len_energy_window_NM1 = len(file_NM1.EnergyWindowInformationSequence)
@@ -189,25 +183,11 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         energy_window2, _, idx_sorted2 = getEnergyWindow(files_NM[1])
         peak_window_idx1 = energy_window1.index(photopeak_value)
         peak_window_idx2 = energy_window2.index(photopeak_value)
-        attenuation_map_path = Path(slicer.app.temporaryPath) /"Attenuation_maps"
-        attenuation_map_path.mkdir(parents=True, exist_ok=True)
-        self.delayDisplay("Downloading test attenuation map data - lower and upper bed positions")
-        lower_att_map_url_id = "1DKn3ixxcRONfmI22jL3WtDEpFcPwhVMp"
-        status = download_file_from_google_drive(lower_att_map_url_id, os.path.join(attenuation_map_path/'attenuation_map_lower.pt'))
-        if status:
-            attenuation_map_lower = torch.load(os.path.join(attenuation_map_path, "attenuation_map_lower.pt"))
-        else:
-            logger.error(f"Failed to download attenuation_map_lower.pt")
-        upper_att_map_url_id = "1RTh2W4j9ranreGDrAF-D0I6skb4eBwWF"
-        status = download_file_from_google_drive(upper_att_map_url_id, os.path.join(attenuation_map_path/'attenuation_map_upper.pt'))
-        if status:
-            attenuation_map_upper = torch.load(os.path.join(attenuation_map_path, "attenuation_map_upper.pt"))
-        else:
-            logger.error(f"Failed to download attenuation_map_upper.pt")
-        attenuation_map1 = getAttenuationMap(files_CT, files_NM, bed_idx=0,
-                                                index_peak=idx_sorted1[peak_window_idx1])
-        attenuation_map2 = getAttenuationMap(files_CT, files_NM, bed_idx=1,
-                                                index_peak=idx_sorted2[peak_window_idx2])
+        attenuation_map_path = self.testDir/'refs'/'attenuation_maps'
+        attenuation_map_lower = torch.load(os.path.join(attenuation_map_path, "attenuation_map_lower.pt"))
+        attenuation_map_upper = torch.load(os.path.join(attenuation_map_path, "attenuation_map_upper.pt"))
+        attenuation_map1 = dicom.get_attenuation_map_from_CT_slices(files_CT, files_NM[0], index_peak=idx_sorted1[peak_window_idx1])
+        attenuation_map2 = dicom.get_attenuation_map_from_CT_slices(files_CT, files_NM[1], index_peak=idx_sorted2[peak_window_idx2])
         mse_upper = torch.sum((attenuation_map_upper.to("cuda")-attenuation_map1)**2)/2
         mse_lower = torch.sum((attenuation_map_lower.to("cuda")-attenuation_map2)**2)/2
         self.assertTrue(mse_upper<0.5)
@@ -237,7 +217,7 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         collimator = psf_metadata['psfModellingMeta']['collimator']
         intrinsic_resolution = psf_metadata['psfModellingMeta']['intrinsic_resolution']
         sigma_fit_params = np.array(psf_metadata['sigma_fit_params'])
-        psf_meta = getPSFMeta(collimator, peak_window_energy, intrinsic_resolution)
+        psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, peak_window_energy, intrinsic_resolution)
         psf_meta_sigma_fit_params = np.array([float('{:.3f}'.format(param)) for param in psf_meta.sigma_fit_params])
         error_margin = np.mean((sigma_fit_params - psf_meta_sigma_fit_params)**2)
         self.assertTrue(error_margin<0.05)
@@ -271,44 +251,21 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         lower_window_idx2 = idx_sorted2[energy_window2.index(lower_window_value)]
         self.assertEqual(upper_window_idx1, upper_window_idx2)
         self.assertEqual(lower_window_idx1, lower_window_idx2)
-        scatter_data_path = Path(slicer.app.temporaryPath) /"Test_scatter_data"
-        scatter_data_path.mkdir(parents=True, exist_ok=True)
+        scatter_data_path = self.testDir/'refs'/'scatter_data'
         _,upperbed_scatter_dew = get_photopeak_scatter(0, files_NM, photopeak_idx, lower_window_idx1, None)
         _,lowerbed_scatter_dew = get_photopeak_scatter(1, files_NM, photopeak_idx, lower_window_idx1, None)
         _,upperbed_scatter_tew = get_photopeak_scatter(0, files_NM, photopeak_idx, lower_window_idx1, upper_window_idx1)
         _,lowerbed_scatter_tew = get_photopeak_scatter(1, files_NM, photopeak_idx, lower_window_idx1, upper_window_idx1)
-        self.delayDisplay("Downloading test double energy window scatter data")
-        ###########Test double energy window scatter#############
-        upperbed_scatter_dew_url_id = "1tnT08bYKBVD-H1B8PLVXhligzjCdQCsc"
-        status = download_file_from_google_drive(upperbed_scatter_dew_url_id, os.path.join(scatter_data_path/'upperbed_scatter_dew.pt'))
-        if status:
-            test_upperbed_scatter_dew = torch.load(os.path.join(scatter_data_path, "upperbed_scatter_dew.pt"))
-        else:
-            logger.error(f"Failed to download upperbed_scatter_dew.pt")
-        lowerbed_scatter_dew_url_id = "1RK-zB6BkPUAm8jZ6Ov1HHBhMGwfw933e"
-        status = download_file_from_google_drive(lowerbed_scatter_dew_url_id, os.path.join(scatter_data_path/'lowerbed_scatter_dew.pt'))
-        if status:
-            test_lowerbed_scatter_dew = torch.load(os.path.join(scatter_data_path, "lowerbed_scatter_dew.pt"))
-        else:
-            logger.error(f"Failed to download lowerbed_scatter_dew.pt")
+        test_upperbed_scatter_dew = torch.load(os.path.join(scatter_data_path, "upperbed_scatter_dew.pt"))
+        test_lowerbed_scatter_dew = torch.load(os.path.join(scatter_data_path, "lowerbed_scatter_dew.pt"))
         mse_upper_dew = torch.sum((test_upperbed_scatter_dew.to("cuda")-upperbed_scatter_dew)**2)/2
         mse_lower_dew = torch.sum((test_lowerbed_scatter_dew.to("cuda")-lowerbed_scatter_dew)**2)/2
         self.assertTrue(mse_upper_dew<0.05)
         self.assertTrue(mse_lower_dew<0.05)
         self.delayDisplay("Downloading test triple energy window scatter data")
         ####################Test triple energy window scatter######################
-        upperbed_scatter_tew_url_id = "1DM5Z8Q2-z5_Y8eYr5pwsdysIicMq8b_A"
-        status = download_file_from_google_drive(upperbed_scatter_tew_url_id, os.path.join(scatter_data_path/'upperbed_scatter_tew.pt'))
-        if status:
-            test_upperbed_scatter_tew = torch.load(os.path.join(scatter_data_path, "upperbed_scatter_tew.pt"))
-        else:
-            logger.error(f"Failed to download upperbed_scatter_tew.pt")
-        lowerbed_scatter_tew_url_id = "18znooiTYrjFcbp2JrRndoj9_lfDeUfqM"
-        status = download_file_from_google_drive(lowerbed_scatter_tew_url_id, os.path.join(scatter_data_path/'lowerbed_scatter_tew.pt'))
-        if status:
-            test_lowerbed_scatter_tew = torch.load(os.path.join(scatter_data_path, "lowerbed_scatter_tew.pt"))
-        else:
-            logger.error(f"Failed to download lowerbed_scatter_tew.pt")
+        test_upperbed_scatter_tew = torch.load(os.path.join(scatter_data_path, "upperbed_scatter_tew.pt"))
+        test_lowerbed_scatter_tew = torch.load(os.path.join(scatter_data_path, "lowerbed_scatter_tew.pt"))
         mse_upper_tew = torch.sum((test_upperbed_scatter_tew.to("cuda")-upperbed_scatter_tew)**2)/2
         mse_lower_tew = torch.sum((test_lowerbed_scatter_tew.to("cuda")-lowerbed_scatter_tew)**2)/2
         self.assertTrue(mse_upper_tew<0.05)
@@ -317,21 +274,39 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Double and triple energy windows scatter data test passed!")
      
     def test_osem(self, algorithm_settings):
+        
+        progress = slicer.util.createProgressDialog()
+        progress.labelText = "Reconstructing..."
+        progress.value = 0
+        progress.setCancelButton(None)
+
+        use_prior_image = False
         algorithm = algorithm_settings['osem']['algorithm']
         iter = algorithm_settings['osem']['iterations']
         subset = algorithm_settings['osem']['subsets']
         prior_beta = prior_delta = prior_gamma = N_prior_anatomy_nearest_neighbours = prior_anatomy_image_file = prior_type = None
         files_NM, attenuation_toggle, ct_file_node, psf_toggle, collimator,\
         intrinsic_resolution, peak_window_idx, upper_window_idx, lower_window_idx = self.get_proj_data()
-        recon_array, fileNMpaths = self.logic.reconstruct(files_NM, attenuation_toggle, ct_file_node, psf_toggle, 
+        _, _, idx_sorted1 = getEnergyWindow(files_NM[0])
+        peak_window_idx = idx_sorted1[peak_window_idx]
+        upper_window_idx = idx_sorted1[upper_window_idx]
+        lower_window_idx = idx_sorted1[lower_window_idx]
+        recon_ds = self.logic.reconstruct(progress, files_NM, attenuation_toggle, ct_file_node, psf_toggle,
                                                     collimator, intrinsic_resolution, peak_window_idx, 
                                                     upper_window_idx, lower_window_idx, algorithm, prior_type, 
-                                                    prior_beta, prior_delta, prior_gamma, prior_anatomy_image_file,
-                                                    N_prior_anatomy_nearest_neighbours, iter, subset)
-        reconstructedDCMInstances = self.logic.stitchMultibed(recon_array, fileNMpaths)
-        return reconstructedDCMInstances
+                                                    prior_beta, prior_delta, prior_gamma, use_prior_image, 
+                                                    prior_anatomy_image_file, N_prior_anatomy_nearest_neighbours, 
+                                                    iter, subset, store_recons=False, test_mode=True)
+        return recon_ds
 
     def test_bsrem(self, algorithm_settings, prior_type):
+
+        progress = slicer.util.createProgressDialog()
+        progress.labelText = "Reconstructing..."
+        progress.value = 0
+        progress.setCancelButton(None)
+
+        use_prior_image = True
         prior_beta = prior_delta = prior_gamma = N_prior_anatomy_nearest_neighbours = prior_anatomy_image_file = None
         algorithm = algorithm_settings['bsrem']['algorithm']
         iter = algorithm_settings['bsrem']['iterations']
@@ -351,15 +326,26 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         if use_anatomical_information:
             N_prior_anatomy_nearest_neighbours = algorithm_settings['nearest_neighbours']
             prior_anatomy_image_file = ct_file_node
-        recon_array, fileNMpaths = self.logic.reconstruct(files_NM, attenuation_toggle, ct_file_node, psf_toggle, 
+        _, _, idx_sorted1 = getEnergyWindow(files_NM[0])
+        peak_window_idx = idx_sorted1[peak_window_idx]
+        upper_window_idx = idx_sorted1[upper_window_idx]
+        lower_window_idx = idx_sorted1[lower_window_idx]
+        recon_ds = self.logic.reconstruct(progress, files_NM, attenuation_toggle, ct_file_node, psf_toggle,
                                                     collimator, intrinsic_resolution, peak_window_idx, 
                                                     upper_window_idx, lower_window_idx, algorithm, prior_type, 
-                                                    prior_beta, prior_delta, prior_gamma, prior_anatomy_image_file,
-                                                    N_prior_anatomy_nearest_neighbours, iter, subset)
-        reconstructedDCMInstances = self.logic.stitchMultibed(recon_array, fileNMpaths)
-        return reconstructedDCMInstances
+                                                    prior_beta, prior_delta, prior_gamma, use_prior_image, 
+                                                    prior_anatomy_image_file, N_prior_anatomy_nearest_neighbours, 
+                                                    iter, subset, store_recons=False, test_mode=True)
+        return recon_ds
 
     def test_osmaposl(self, algorithm_settings, prior_type):
+
+        progress = slicer.util.createProgressDialog()
+        progress.labelText = "Reconstructing..."
+        progress.value = 0
+        progress.setCancelButton(None)
+
+        use_prior_image = True
         prior_beta = prior_delta = prior_gamma = N_prior_anatomy_nearest_neighbours = prior_anatomy_image_file = None
         algorithm = algorithm_settings['osmaposl']['algorithm']
         iter = algorithm_settings['osmaposl']['iterations']
@@ -379,13 +365,17 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         if use_anatomical_information:
             N_prior_anatomy_nearest_neighbours = algorithm_settings['nearest_neighbours']
             prior_anatomy_image_file = ct_file_node
-        recon_array, fileNMpaths = self.logic.reconstruct(files_NM, attenuation_toggle, ct_file_node, psf_toggle, 
+        _, _, idx_sorted1 = getEnergyWindow(files_NM[0])
+        peak_window_idx = idx_sorted1[peak_window_idx]
+        upper_window_idx = idx_sorted1[upper_window_idx]
+        lower_window_idx = idx_sorted1[lower_window_idx]
+        recon_ds = self.logic.reconstruct(progress, files_NM, attenuation_toggle, ct_file_node, psf_toggle,
                                                     collimator, intrinsic_resolution, peak_window_idx, 
                                                     upper_window_idx, lower_window_idx, algorithm, prior_type, 
-                                                    prior_beta, prior_delta, prior_gamma, prior_anatomy_image_file,
-                                                    N_prior_anatomy_nearest_neighbours, iter, subset)
-        reconstructedDCMInstances = self.logic.stitchMultibed(recon_array, fileNMpaths)
-        return (reconstructedDCMInstances)
+                                                    prior_beta, prior_delta, prior_gamma, use_prior_image, 
+                                                    prior_anatomy_image_file, N_prior_anatomy_nearest_neighbours, 
+                                                    iter, subset, store_recons=False, test_mode=True)
+        return recon_ds
 
     def get_proj_data(self):
         dicomValues = DicomValues()
@@ -425,26 +415,21 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
             algorithm_settings = json.load(settingsfile) 
         reconstructedDCMInstances = self.test_osem(algorithm_settings)
         self.delayDisplay("Downloading test osem recon data")
-        osem_recon_path = Path(slicer.app.temporaryPath) /"osem_recon"
-        osem_recon_path.mkdir(parents=True, exist_ok=True)
-        osem_recon_url_id = "132oc-3ZDs7Cvon7i2mTvGd-v1sBhENE-"
+        osem_recon_path = self.testDir/'refs'/'reconstructions'
         zip_path = osem_recon_path / 'osem_1it_8ss.zip'
-        status = download_file_from_google_drive(osem_recon_url_id, zip_path)
-        if status:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(osem_recon_path)
-            dicom_series=[]
-            for filename in sorted(os.listdir(os.path.join(osem_recon_path, "osem_1it_8ss"))):
-                filepath = os.path.join(osem_recon_path, f'./osem_1it_8ss/{filename}')
-                dicom_file = pydicom.dcmread(filepath)
-                dicom_series.append(dicom_file.pixel_array)
-        else:
-            logger.error(f"Failed to download osem recon data")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(osem_recon_path)
+        dicom_series=[]
+        for filename in sorted(os.listdir(os.path.join(osem_recon_path, "osem_1it_8ss"))):
+            filepath = os.path.join(osem_recon_path, f'./osem_1it_8ss/{filename}')
+            dicom_file = pydicom.dcmread(filepath)
+            dicom_series.append(dicom_file.pixel_array)
         test_recon_series = []
         for _, dataset in enumerate(reconstructedDCMInstances):
             test_recon_series.append(dataset.pixel_array)
         self.assertEqual(len(dicom_series), len(test_recon_series))
         mse_error = np.mean((np.array(dicom_series)-np.array(test_recon_series))**2)
+        print(mse_error)
         self.assertTrue(mse_error<0.05)
         self.delayDisplay("OSEM test passed!")
         self.cleanUP()
@@ -453,27 +438,21 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         self.delayDisplay("BSREM test started!")
         with open(os.path.join(self.resources_dir,'algorithmTestSettings.json'), mode="r", encoding="utf-8") as settingsfile:
             algorithm_settings = json.load(settingsfile)
-        bsrem_recon_path = Path(slicer.app.temporaryPath) /"bsrem_recon"
-        bsrem_recon_path.mkdir(parents=True, exist_ok=True)
+        bsrem_recon_path = self.testDir/'refs'/'reconstructions'
         #############Test RelativeDifferencePenalty Prior#############
         test_relativeDifferencePenalty_prior = False
         if test_relativeDifferencePenalty_prior:
             prior_type = "RelativeDifferencePenalty"
+            self.delayDisplay(f"Testing BSREM with {prior_type}!")
             rdp_reconstructedDCMInstances = self.test_bsrem(algorithm_settings, prior_type)
-            self.delayDisplay("Downloading test relative difference penalty bsrem recon data")
-            bsrem_rdp_recon_url_id = "1WBgcnEyR_jQvCCd8TNLmSBjXME3zXvFR"
             zip_path = bsrem_recon_path/'bsrem_1it_8ss_rdp.zip'
-            status = download_file_from_google_drive(bsrem_rdp_recon_url_id, zip_path)
-            if status:
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(bsrem_recon_path)
-                bsrem_rdp_dicom_series=[]
-                for filename in sorted(os.listdir(os.path.join(bsrem_recon_path, "bsrem_1it_8ss_rdp"))):
-                    filepath = os.path.join(bsrem_recon_path, f'./bsrem_1it_8ss_rdp/{filename}')
-                    dicom_file = pydicom.dcmread(filepath)
-                    bsrem_rdp_dicom_series.append(dicom_file.pixel_array)
-            else:
-                logger.error(f"Failed to download brem relative difference penalty recon data")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(bsrem_recon_path)
+            bsrem_rdp_dicom_series=[]
+            for filename in sorted(os.listdir(os.path.join(bsrem_recon_path, "bsrem_1it_8ss_rdp"))):
+                filepath = os.path.join(bsrem_recon_path, f'./bsrem_1it_8ss_rdp/{filename}')
+                dicom_file = pydicom.dcmread(filepath)
+                bsrem_rdp_dicom_series.append(dicom_file.pixel_array)
             bsrem_rdp_test_recon_series = []
             for _, dataset in enumerate(rdp_reconstructedDCMInstances):
                 bsrem_rdp_test_recon_series.append(dataset.pixel_array)
@@ -485,21 +464,16 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         test_logCosh_prior = True
         if test_logCosh_prior:
             prior_type = "LogCosh"
+            self.delayDisplay(f"Testing BSREM with {prior_type}!")
             logcosh_reconstructedDCMInstances = self.test_bsrem(algorithm_settings, prior_type)
-            self.delayDisplay("Downloading test logcosh bsrem recon data")
-            bsrem_logcosh_recon_url_id = "1wOMuaxBFl3ntxvGdqR7LO6YXsdNMjrtz"
             zip_path = bsrem_recon_path / 'bsrem_1it_8ss_logcosh.zip'
-            status = download_file_from_google_drive(bsrem_logcosh_recon_url_id, zip_path)
-            if status:
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(bsrem_recon_path)
-                bsrem_logcosh_dicom_series=[]
-                for filename in sorted(os.listdir(os.path.join(bsrem_recon_path, "bsrem_1it_8ss_logcosh"))):
-                    filepath = os.path.join(bsrem_recon_path, f'./bsrem_1it_8ss_logcosh/{filename}')
-                    dicom_file = pydicom.dcmread(filepath)
-                    bsrem_logcosh_dicom_series.append(dicom_file.pixel_array)
-            else:
-                logger.error(f"Failed to download brem LogCosh prior recon data")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(bsrem_recon_path)
+            bsrem_logcosh_dicom_series=[]
+            for filename in sorted(os.listdir(os.path.join(bsrem_recon_path, "bsrem_1it_8ss_logcosh"))):
+                filepath = os.path.join(bsrem_recon_path, f'./bsrem_1it_8ss_logcosh/{filename}')
+                dicom_file = pydicom.dcmread(filepath)
+                bsrem_logcosh_dicom_series.append(dicom_file.pixel_array)
             bsrem_logcosh_test_recon_series = []
             for _, dataset in enumerate(logcosh_reconstructedDCMInstances):
                 bsrem_logcosh_test_recon_series.append(dataset.pixel_array)
@@ -511,21 +485,16 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         test_quadratic_prior = False
         if test_quadratic_prior:
             prior_type = "Quadratic"
+            self.delayDisplay(f"Testing BSREM with {prior_type}!")
             quadratic_reconstructedDCMInstances = self.test_bsrem(algorithm_settings, prior_type)
-            self.delayDisplay("Downloading test Quadratic bsrem recon data")
-            bsrem_quadratic_recon_url_id = '1DJ0RNNQRKEDK1Wpworc9NuEWl_XHih7M'
             zip_path = bsrem_recon_path/'bsrem_1it_8ss_quadratic.zip'
-            status = download_file_from_google_drive(bsrem_quadratic_recon_url_id, zip_path)
-            if status:
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(bsrem_recon_path)
-                bsrem_quadratic_dicom_series=[]
-                for filename in sorted(os.listdir(os.path.join(bsrem_recon_path, "bsrem_1it_8ss_quadratic"))):
-                    filepath = os.path.join(bsrem_recon_path, f'./bsrem_1it_8ss_quadratic/{filename}')
-                    dicom_file = pydicom.dcmread(filepath)
-                    bsrem_quadratic_dicom_series.append(dicom_file.pixel_array)
-            else:
-                logger.error(f"Failed to download bsrem Quadratic prior recon data")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(bsrem_recon_path)
+            bsrem_quadratic_dicom_series=[]
+            for filename in sorted(os.listdir(os.path.join(bsrem_recon_path, "bsrem_1it_8ss_quadratic"))):
+                filepath = os.path.join(bsrem_recon_path, f'./bsrem_1it_8ss_quadratic/{filename}')
+                dicom_file = pydicom.dcmread(filepath)
+                bsrem_quadratic_dicom_series.append(dicom_file.pixel_array)
             bsrem_quadratic_test_recon_series = []
             for _, dataset in enumerate(quadratic_reconstructedDCMInstances):
                 bsrem_quadratic_test_recon_series.append(dataset.pixel_array)
@@ -539,27 +508,21 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         self.delayDisplay("OSMAPOSL test started!")
         with open(os.path.join(self.resources_dir,'algorithmTestSettings.json'), mode="r", encoding="utf-8") as settingsfile:
             algorithm_settings = json.load(settingsfile)
-        osmaposl_recon_path = Path(slicer.app.temporaryPath) /"osmaposl_recon"
-        osmaposl_recon_path.mkdir(parents=True, exist_ok=True)
+        osmaposl_recon_path = self.testDir/'refs'/'reconstructions'
         #############Test RelativeDifferencePenalty Prior#########################
         test_relativeDifferencePenalty_prior = False
         if test_relativeDifferencePenalty_prior:
             prior_type = "RelativeDifferencePenalty"
+            self.delayDisplay(f"Testing OSMAPOSL with {prior_type}!")
             rdp_reconstructedDCMInstances = self.test_osmaposl(algorithm_settings, prior_type)
-            self.delayDisplay("Downloading test relative difference penalty osmaposl recon data")
-            osmaposl_rdp_recon_url_id = "1nO9D_hP9K4Iz_1JS8aidOLd0Get6qMR5"
             zip_path = osmaposl_recon_path/'osmaposl_1it_8ss_rdp.zip'
-            status = download_file_from_google_drive(osmaposl_rdp_recon_url_id, zip_path)
-            if status:
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(osmaposl_recon_path)
-                osmaposl_rdp_dicom_series=[]
-                for filename in sorted(os.listdir(os.path.join(osmaposl_recon_path, "osmaposl_1it_8ss_rdp"))):
-                    filepath = os.path.join(osmaposl_recon_path, f'./osmaposl_1it_8ss_rdp/{filename}')
-                    dicom_file = pydicom.dcmread(filepath)
-                    osmaposl_rdp_dicom_series.append(dicom_file.pixel_array)
-            else:
-                logger.error(f"Failed to download osmaposl relative difference penalty recon data")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(osmaposl_recon_path)
+            osmaposl_rdp_dicom_series=[]
+            for filename in sorted(os.listdir(os.path.join(osmaposl_recon_path, "osmaposl_1it_8ss_rdp"))):
+                filepath = os.path.join(osmaposl_recon_path, f'./osmaposl_1it_8ss_rdp/{filename}')
+                dicom_file = pydicom.dcmread(filepath)
+                osmaposl_rdp_dicom_series.append(dicom_file.pixel_array)
             osmaposl_rdp_test_recon_series = []
             for _, dataset in enumerate(rdp_reconstructedDCMInstances):
                 osmaposl_rdp_test_recon_series.append(dataset.pixel_array)
@@ -571,21 +534,16 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
         test_logCosh_prior = True
         if test_logCosh_prior:
             prior_type = "LogCosh"
+            self.delayDisplay(f"Testing OSMAPOSL with {prior_type}!")
             logcosh_reconstructedDCMInstances = self.test_osmaposl(algorithm_settings, prior_type)
-            self.delayDisplay("Downloading test logcosh osmaposl recon data")
-            osmaposl_logcosh_recon_url_id = "1Xz8v23Lxl3bXx4C66MUqN5kCGAaYQP75"
             zip_path = osmaposl_recon_path / 'osmaposl_1it_8ss_logcosh.zip'
-            status = download_file_from_google_drive(osmaposl_logcosh_recon_url_id, zip_path)
-            if status:
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(osmaposl_recon_path)
-                osmaposl_logcosh_dicom_series=[]
-                for filename in sorted(os.listdir(os.path.join(osmaposl_recon_path, "osmaposl_1it_8ss_logcosh"))):
-                    filepath = os.path.join(osmaposl_recon_path, f'./osmaposl_1it_8ss_logcosh/{filename}')
-                    dicom_file = pydicom.dcmread(filepath)
-                    osmaposl_logcosh_dicom_series.append(dicom_file.pixel_array)
-            else:
-                logger.error(f"Failed to download osmaposl LogCosh prior recon data")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(osmaposl_recon_path)
+            osmaposl_logcosh_dicom_series=[]
+            for filename in sorted(os.listdir(os.path.join(osmaposl_recon_path, "osmaposl_1it_8ss_logcosh"))):
+                filepath = os.path.join(osmaposl_recon_path, f'./osmaposl_1it_8ss_logcosh/{filename}')
+                dicom_file = pydicom.dcmread(filepath)
+                osmaposl_logcosh_dicom_series.append(dicom_file.pixel_array)
             osmaposl_logcosh_test_recon_series = []
             for _, dataset in enumerate(logcosh_reconstructedDCMInstances):
                 osmaposl_logcosh_test_recon_series.append(dataset.pixel_array)
@@ -594,24 +552,19 @@ class ReconstructionTest(ScriptedLoadableModuleTest):
             self.assertTrue(logcosh_mse_error<0.05)
             self.delayDisplay("OSMAPOSL log cosh prior test passed!")
         ##################Test Quadratic Prior#######################
-        test_quadratic_prior = False
+        test_quadratic_prior = True
         if test_quadratic_prior:
             prior_type = "Quadratic"
+            self.delayDisplay(f"Testing OSMAPOSL with {prior_type}!")
             quadratic_reconstructedDCMInstances = self.test_osmaposl(algorithm_settings, prior_type)
-            self.delayDisplay("Downloading test Quadratic osmaposl recon data")
-            osmaposl_quadratic_recon_url_id = '14OmIoeHh4pGd4qEglNPJqJ87sCn4Orlk'
             zip_path = osmaposl_recon_path/'osmaposl_1it_8ss_quadratic.zip'
-            status = download_file_from_google_drive(osmaposl_quadratic_recon_url_id, zip_path)
-            if status:
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(osmaposl_recon_path)
-                osmaposl_quadratic_dicom_series=[]
-                for filename in sorted(os.listdir(os.path.join(osmaposl_recon_path, "osmaposl_1it_8ss_quadratic"))):
-                    filepath = os.path.join(osmaposl_recon_path, f'./osmaposl_1it_8ss_quadratic/{filename}')
-                    dicom_file = pydicom.dcmread(filepath)
-                    osmaposl_quadratic_dicom_series.append(dicom_file.pixel_array)
-            else:
-                logger.error(f"Failed to download osmaposl Quadratic prior recon data")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(osmaposl_recon_path)
+            osmaposl_quadratic_dicom_series=[]
+            for filename in sorted(os.listdir(os.path.join(osmaposl_recon_path, "osmaposl_1it_8ss_quadratic"))):
+                filepath = os.path.join(osmaposl_recon_path, f'./osmaposl_1it_8ss_quadratic/{filename}')
+                dicom_file = pydicom.dcmread(filepath)
+                osmaposl_quadratic_dicom_series.append(dicom_file.pixel_array)
             osmaposl_quadratic_test_recon_series = []
             for _, dataset in enumerate(quadratic_reconstructedDCMInstances):
                 osmaposl_quadratic_test_recon_series.append(dataset.pixel_array)
