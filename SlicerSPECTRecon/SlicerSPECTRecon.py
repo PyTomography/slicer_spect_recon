@@ -45,19 +45,13 @@ from Testing.Python.simind_to_dicom import SimindToDicomConverterTest
 
 __submoduleNames__ = [
     "SlicerSPECTReconLogic",
-    "SlicerSPECTReconTest",
-    "vtkkmrmlutils",
-    "simindToDicomConverterTest",
-    "testutils_builder",
-    "transforms",
-    "volumeutils",
-    "systemMatrix",
-    "simindToDicom",
-    "priors",
-    "algorithms",
-    "getmetadatautils",
-    "likelihood",
-    "dicomvalues"
+    "Algorithms",
+    "Callbacks",
+    "MetadataUtils",
+    "Priors",
+    "SimindToDicom",
+    "VolumeUtils",
+    "VtkkmrmlUtils",
 ]
 __package__ = "SlicerSPECTRecon"
 mod = importlib.import_module("Logic", __name__)
@@ -106,7 +100,7 @@ class SlicerSPECTRecon(ScriptedLoadableModule):
         testCase = SimindToDicomConverterTest()
         testCase.messageDelay = msec
         testCase.runTest(**kwargs)
-        # # Test Reconstructions
+        # Test Reconstructions
         testCase = ReconstructionTest()
         testCase.messageDelay = msec
         testCase.runTest(**kwargs)
@@ -128,13 +122,11 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode = None
         self._updatingGUIFromParameterNode = False
         self._projectionList = None
-        print('init activated')
 
     def setup(self):
         """
         Called when the user opens the module the first time and the widget is initialized.
         """
-        print('setup activated')
         ScriptedLoadableModuleWidget.setup(self)
         # Load widget from .ui file (created by Qt Designer).
         # Additional widgets can be instantiated manually and added to self.layout.
@@ -158,14 +150,14 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             ['string', 'string', 'string', 'float', 'float']
         )
 
-    # def filterNMVolumes(self):
-    #     """Filter the projection data to show only Nuclear Medicine volumes."""
-    #     self.ui.NM_data_selector.noneEnabled = False
-    #     self.ui.NM_data_selector.addEnabled = False
-    #     nmSOPClassUID = "1.2.840.10008.5.1.4.1.1.20"  # Standard SOPClassUID for PET images
-    #     self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", nmSOPClassUID)
-    #     self.ui.NM_data_selector.setMRMLScene(None)  # Clear the combobox first
-    #     self.ui.NM_data_selector.setMRMLScene(slicer.mrmlScene)
+    def filterNMVolumes(self):
+        """Filter the projection data to show only Nuclear Medicine volumes."""
+        self.ui.NM_data_selector.noneEnabled = False
+        self.ui.NM_data_selector.addEnabled = False
+        nmSOPClassUID = "1.2.840.10008.5.1.4.1.1.20"  # Standard SOPClassUID for PET images
+        self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", nmSOPClassUID)
+        self.ui.NM_data_selector.setMRMLScene(None)  # Clear the combobox first
+        self.ui.NM_data_selector.setMRMLScene(slicer.mrmlScene)
 
     def filterCTVolumes(self):
         """Filter the attenuation data to show only CT volumes."""
@@ -248,12 +240,10 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def cleanup(self) -> None:
         """Called when the application closes and the module widget is destroyed."""
-        print('cleanup activated')
         self.removeObservers()
 
     def enter(self) -> None:
         """Called each time the user opens this module."""
-        print('enter Activiated')
         self.initializeParameterNode()
         self.processExistingNMVolumes()
         self.filterNMVolumes()
@@ -306,20 +296,17 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def exit(self) -> None:
         """Called each time the user opens a different module."""
-        print('exit Activiated')
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
     def onSceneStartClose(self, caller, event) -> None:
         """Called just before the scene is closed."""
         # Parameter node will be reset, do not use it anymore
-        print('SceneStartClose Activiated')
         self.setParameterNode(None)
         
     def onSceneEndClose(self, caller, event) -> None:
         """Called just after the scene is closed."""
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
-        print('SceneEndClose Activiated')
         if self.parent.isEntered:
             self.initializeParameterNode()
 
@@ -327,13 +314,11 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Ensure parameter node exists and observed.
         """
-        print('initializeParameterNode Activiated')
         # Parameter node stores all user choices in parameter values, node selections, etc.
         # so that when the scene is saved and reloaded, these settings are restored.
         self.setParameterNode(self.logic.getParameterNode())
         
     def setParameterNode(self, inputParameterNode):
-        print('setParameterNode Activiated')
         """
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
@@ -410,7 +395,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This method is called whenever parameter node is changed.
         The module GUI is updated to show the current state of the parameter node.
         """
-        print('updateGUIFromParameterNode Activiated')
         if self._updatingGUIFromParameterNode:
             return
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
@@ -446,7 +430,6 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._updatingGUIFromParameterNode = False
 
     def updateParameterNodeFromGUI(self, caller=None, event=None):
-        print('updateParameterNodeFromGUI')
         """
         This method is called when the user makes any change in the GUI.
         The changes are saved into the parameter node (so that they are restored when the scene is saved and loaded).
@@ -564,7 +547,8 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             N_prior_anatomy_nearest_neighbours = self.ui.nearestNeighboursSpinBox.value,
             n_iters = self.ui.osem_iterations_spinbox.value, 
             n_subsets = self.ui.osem_subsets_spinbox.value,
-            store_recons= self.ui.storeItersCheckBox.checked
+            store_recons= self.ui.storeItersCheckBox.checked,
+            test_mode = False
         )
         #progress.reset()
         self.logic.DisplayVolume(recon_volume_node)

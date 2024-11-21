@@ -53,7 +53,6 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         if psf_toggle:
             _ , mean_window_energies, _= getEnergyWindow(file_NM)
             peak_window_energy = mean_window_energies[index_peak]
-            print(peak_window_energy)
             psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, peak_window_energy, intrinsic_resolution=intrinsic_resolution)
             psf_transform = SPECTPSFTransform(psf_meta)
             obj2obj_transforms.append(psf_transform)
@@ -88,6 +87,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         n_iters: int,
         n_subsets: int,
         store_recons: bool = False,
+        test_mode: bool = False,
     ): 
         if index_peak is None:
             logging.error("Please select a photopeak energy window")
@@ -142,13 +142,13 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             )
             callbacks = [callback0] + [DataStorageCallback(r.likelihood, r.object_prediction) for r in recon_algorithm_all_beds.reconstruction_algorithms[1:]]
             reconstructed_image_multibed = recon_algorithm_all_beds(n_iters, n_subsets, callback=callbacks)
-            volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM)
+            volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM, test_mode)
             # Store information for accessing later
             self.stored_recon_iters[volume_node.GetID()] = [recon_algorithm_all_beds, callbacks]
         else:
             callback = LoadingCallback(progressDialog, n_iters, n_subsets)
             reconstructed_image_multibed = recon_algorithm_all_beds(n_iters, n_subsets, callback=callback)
-            volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM)
+            volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM, test_mode)
         progressDialog.close()
         return volume_node
     
@@ -169,6 +169,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         self,
         reconstructed_image_multibed,
         fileNMpaths,
+        test_mode,
     ):
         # Get top bed position
         if len(fileNMpaths)>1:
@@ -187,6 +188,8 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             recon_name = 'slicer_recon',
             return_ds = True
         )
+        if test_mode:
+            return recon_ds
         temp_dir = createTempDir()
         for i, dataset in enumerate(recon_ds):
             temp_file_path = os.path.join(temp_dir, f"temp_{i}.dcm")
