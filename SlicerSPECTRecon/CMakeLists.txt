@@ -4,20 +4,17 @@ set(MODULE_NAME SlicerSPECTRecon)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
-  Logic/algorithms.py
-  Logic/getmetadatautils.py
-  Logic/likelihood.py
-  Logic/priors.py
-  Logic/simindToDicom.py
+  Logic/Algorithms.py
+  Logic/Callbacks.py
+  Logic/MetadataUtils.py
+  Logic/Priors.py
+  Logic/SimindToDicom.py
   Logic/SlicerSPECTReconLogic.py
-  Logic/SlicerSPECTReconTest.py
-  Logic/systemMatrix.py
-  Logic/transforms.py
-  Logic/volumeutils.py
-  Logic/vtkkmrmlutils.py
-  Logic/simindToDicomConverterTest.py
-  Logic/testutils_builder.py
-  Logic/dicomvalues.py
+  Logic/VolumeUtils.py
+  Logic/VtkkmrmlUtils.py
+  Testing/Python/reconstruction.py
+  Testing/Python/simind_to_dicom.py
+  Testing/Python/utils.py
   )
 
 set(MODULE_PYTHON_RESOURCES
