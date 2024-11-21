@@ -5,6 +5,7 @@ from pathlib import Path
 import logging
 import qt
 from bs4 import BeautifulSoup
+import zipfile
 
 logger = logging.getLogger(__name__)
 DATABASE_INITIALIZED = False
@@ -56,59 +57,36 @@ def initDICOMDatabase():
         return
     DATABASE_INITIALIZED = True
 
-def download_file_from_google_drive(file_id, destination):
-    URL = "https://drive.google.com/uc?export=download"
-    session = requests.Session()
-    response = session.get(URL, params={'id': file_id}, stream=True)
-    token = get_confirm_token(response.text)
-    if token:
-        confirm_url, confirm_params = get_confirm_form_params(response.text, token)
-        if confirm_url:
-            response = session.get(confirm_url, params=confirm_params, stream=True)
-            if 'text/html' in response.headers.get("Content-Type"):
-                return 0
-            else:
-                save_response_content(response, destination)
-                return 1
+def get_data_from_url(url, data_type):
+    testDir = Path(slicer.app.temporaryPath) /'test_ref_data'
+    testDir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Downloading {data_type} from url to {testDir}")
+    if data_type == 'test_data':
+        zip_path = testDir / 'test_data.zip'
+    elif data_type == 'ref_data':
+        zip_path = testDir / 'ref_data.zip'
+    test_data_status = download_file_from_url(url, zip_path)
+    if test_data_status:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(testDir)
+        return testDir
     else:
-        params = {'id': file_id, 'export': 'download'}
-        response = session.get(URL, params=params, stream=True)
-        if 'text/html' in response.headers.get("Content-Type"):
-            return 0
-        else:
-            save_response_content(response, destination)
-            return 1
+        logger.error(f"Failed to download {data_type}")
+        return 0
+    
+def download_file_from_url(url, zip_path):
+    session = requests.Session()
+    response = session.get(url, stream=True)
+    if response.ok:
+        CHUNK_SIZE = 32768
+        with open(zip_path, "wb") as f:
+            for chunk in response.iter_content(CHUNK_SIZE):
+                if chunk:
+                    f.write(chunk)
+        return 1
+    else:
+        return 0
 
-def get_confirm_token(response_text):
-    soup = BeautifulSoup(response_text, 'html.parser')
-    for input_tag in soup.find_all('input'):
-        if input_tag.get('name') == 'confirm':
-            return input_tag.get('value')
-    return None
-
-def get_confirm_form_params(response_text, token):
-    soup = BeautifulSoup(response_text, 'html.parser')
-    download_form = soup.find('form', {'id': 'download-form'})
-    if download_form:
-        action_url = download_form.get('action')
-        confirm_params = {}
-        for input_tag in download_form.find_all('input'):
-            if 'name' in input_tag.attrs and 'value' in input_tag.attrs:
-                confirm_params[input_tag['name']] = input_tag['value']
-        confirm_params['confirm'] = token
-        if action_url:
-            if not action_url.startswith('http'):
-                action_url = 'https://drive.google.com' + action_url
-            return action_url, confirm_params
-    return None, None
-
-def save_response_content(response, destination):
-    CHUNK_SIZE = 32768
-    with open(destination, "wb") as f:
-        for chunk in response.iter_content(CHUNK_SIZE):
-            if chunk:
-                f.write(chunk)
-                
 class DicomValues:
     """Instance UIDs for projection test files
         NM1, NM2 -> Spect projection data for test patient
