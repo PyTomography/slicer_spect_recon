@@ -4,7 +4,7 @@ import importlib
 def ensure_packages_installed():
     """Ensure required packages are installed."""
     required_packages = {
-        "pytomography": "3.2.4",
+        "pytomography": "3.3.0",
         "beautifulsoup4": None,
     }
     for package, version in required_packages.items():
@@ -127,6 +127,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Called when the user opens the module the first time and the widget is initialized.
         """
+        logging.info('setup called')
         ScriptedLoadableModuleWidget.setup(self)
         # Load widget from .ui file (created by Qt Designer).
         # Additional widgets can be instantiated manually and added to self.layout.
@@ -137,11 +138,15 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.logic = SlicerSPECTReconLogic()
         # Connections
         # # These connections ensure that we update parameter node when scene is closed
+        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.onMRMLSceneNodeAdded)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
-        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.onMRMLSceneNodeAdded)
         # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
         # (in the selected parameter node).
+        # Add filters to dropdown menus so we only get spect projections / CTs in the dropdown boxes
+        self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", "1.2.840.10008.5.1.4.1.1.20")
+        self.ui.attenuationdata.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", "1.2.840.10008.5.1.4.1.1.2")
+        self.ui.anatomyPriorImageNode.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", "1.2.840.10008.5.1.4.1.1.2")
         self.setupConnections()
         # initialize for loading data in case
         # Add uncertainty table
@@ -149,40 +154,9 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             ['Image', 'Segmentation', 'Mask', 'Absolute Uncertainty', 'Percent Uncertainty'],
             ['string', 'string', 'string', 'float', 'float']
         )
-
-    def filterNMVolumes(self):
-        """Filter the projection data to show only Nuclear Medicine volumes."""
-        self.ui.NM_data_selector.noneEnabled = False
-        self.ui.NM_data_selector.addEnabled = False
-        nmSOPClassUID = "1.2.840.10008.5.1.4.1.1.20"  # Standard SOPClassUID for PET images
-        self.ui.NM_data_selector.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", nmSOPClassUID)
-        self.ui.NM_data_selector.setMRMLScene(None)  # Clear the combobox first
-        self.ui.NM_data_selector.setMRMLScene(slicer.mrmlScene)
-
-    def filterCTVolumes(self):
-        """Filter the attenuation data to show only CT volumes."""
-        ctSOPClassUID = "1.2.840.10008.5.1.4.1.1.2"  # Standard SOPClassUID for CT images
-        sopclassuidtag = '0008,0016'
-        for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
-            volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
-            if volNode.GetAttribute("SOPClassUID"):
-                pass
-            else:
-                uids = volNode.GetAttribute('DICOM.instanceUIDs')
-                if uids is not None:
-                    uid = uids.split()
-                if len(uid)>1:
-                    filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in uid]
-                    for filepath in filepaths:
-                        sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
-                        volNode.SetAttribute("SOPClassUID", sopClassUID)
-                else:
-                    filepath = slicer.dicomDatabase.fileForInstance(uid)
-                    sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
-                    volNode.SetAttribute("SOPClassUID", sopClassUID)
-        self.ui.attenuationdata.addAttribute("vtkMRMLScalarVolumeNode", "SOPClassUID", ctSOPClassUID)
         
     def setupConnections(self):
+        logging.info('setupConnections called')
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.psf_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.scatter_toggle.connect('toggled(bool)', self.hideShowItems)
@@ -240,17 +214,21 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
     def cleanup(self) -> None:
         """Called when the application closes and the module widget is destroyed."""
+        logging.info('cleanup called')
         self.removeObservers()
 
     def enter(self) -> None:
         """Called each time the user opens this module."""
+        logging.info('enter called')
         self.initializeParameterNode()
-        self.processExistingNMVolumes()
-        self.filterNMVolumes()
+        # Because we are re-entering the module, we need to update this stuff TODO: figure out why
+        self.onMRMLSceneNodeAdded(None,None)
+        self.ui.NM_data_selector.setMRMLScene(None)
+        self.ui.NM_data_selector.setMRMLScene(slicer.mrmlScene)
 
     def onMRMLSceneNodeAdded(self, caller, event):
-        """Triggered when a node is added to the scene."""
-        addedNodes = []
+        """Triggered when a node is added to the scene, add SOP Class UIDs as attribute to volume nodes so we can filter in the UI."""
+        logging.info('onMRMLSceneNodeAdded called')
         for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
             volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
             if not volNode.GetAttribute("SOPClassUID"):
@@ -269,43 +247,22 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                         sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
                         volNode.SetAttribute("SOPClassUID", sopClassUID)
                     print(f"Updated SOPClassUID for node: {volNode.GetName()}")
-                addedNodes.append(volNode)
-        if addedNodes:
-            self.filterNMVolumes()
-
-    def processExistingNMVolumes(self):
-        """Process all existing volume nodes in the scene."""
-        for nodeIndex in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLScalarVolumeNode")):
-            volNode = slicer.mrmlScene.GetNthNodeByClass(nodeIndex, "vtkMRMLScalarVolumeNode")
-            if not volNode.GetAttribute("SOPClassUID"):
-                uids = volNode.GetAttribute('DICOM.instanceUIDs')
-                if uids:
-                    uid = uids.split()
-                    sopclassuidtag = '0008,0016'
-                    sopClassUID = None
-                    if len(uid) > 1:
-                        filepaths = [slicer.dicomDatabase.fileForInstance(instanceUID) for instanceUID in uid]
-                        for filepath in filepaths:
-                            sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
-                            volNode.SetAttribute("SOPClassUID", sopClassUID)
-                    else:
-                        filepath = slicer.dicomDatabase.fileForInstance(uid[0])
-                        sopClassUID = slicer.dicomDatabase.fileValue(filepath, sopclassuidtag)
-                        volNode.SetAttribute("SOPClassUID", sopClassUID)
-                    print(f"Processed existing volume node: {volNode.GetName()}")
         
     def exit(self) -> None:
         """Called each time the user opens a different module."""
+        logging.info('exit called')
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
     def onSceneStartClose(self, caller, event) -> None:
         """Called just before the scene is closed."""
+        logging.info('onSceneStartClose called')
         # Parameter node will be reset, do not use it anymore
         self.setParameterNode(None)
         
     def onSceneEndClose(self, caller, event) -> None:
         """Called just after the scene is closed."""
+        logging.info('onSceneEndClose called')
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
         if self.parent.isEntered:
             self.initializeParameterNode()
@@ -314,6 +271,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Ensure parameter node exists and observed.
         """
+        logging.info('initializeParameterNode called')
         # Parameter node stores all user choices in parameter values, node selections, etc.
         # so that when the scene is saved and reloaded, these settings are restored.
         self.setParameterNode(self.logic.getParameterNode())
@@ -323,6 +281,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
         """
+        logging.info('setParameterNode called')
         # Unobserve previously selected parameter node and add an observer to the newly selected.
         # Changes of parameter node are observed so that whenever parameters are changed by a script or any other module
         # those are reflected immediately in the GUI.
@@ -333,8 +292,8 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
             
     def hideShowItems(self, called=None, event=None):
+        logging.info('hideShowItems called')
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
-        self.filterCTVolumes()# Call filtering method
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         # Scatter stuff
@@ -395,6 +354,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This method is called whenever parameter node is changed.
         The module GUI is updated to show the current state of the parameter node.
         """
+        logging.info('updateGUIFromParameterNode called')
         if self._updatingGUIFromParameterNode:
             return
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
@@ -434,6 +394,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This method is called when the user makes any change in the GUI.
         The changes are saved into the parameter node (so that they are restored when the scene is saved and loaded).
         """
+        logging.info('updateParameterNodeFromGUI called')
         if self._parameterNode is None or self._updatingGUIFromParameterNode:
             return
         wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
@@ -525,6 +486,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         progress.value = 0
         progress.setCancelButton(None)
         files_NM = get_filesNM_from_NMNodes(self._projectionList)
+        print(files_NM)
         photopeak_idx, upper_window_idx, lower_window_idx = self._get_photopeak_scatter_idxs(files_NM[0])
         recon_volume_node = self.logic.reconstruct( 
             progressDialog=progress,
