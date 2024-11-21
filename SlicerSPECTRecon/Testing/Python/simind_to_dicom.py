@@ -24,7 +24,7 @@ class SimindToDicomConverterTest(ScriptedLoadableModuleTest):
         self.cleanUP()
         logger.info("SlicerSPECTRecon.simindToDicomConverterTest")
         module_dir = os.path.dirname(__file__)
-        self.resources_dir = os.path.join(module_dir, './../Resources')
+        self.resources_dir = os.path.join(module_dir, './../../Resources')
         self.logic = SlicerSPECTReconLogic()
 
     def cleanUP(self):
@@ -38,6 +38,9 @@ class SimindToDicomConverterTest(ScriptedLoadableModuleTest):
         self.cleanUP()
 
     def test_simindToDicom_conversion(self):
+        ref_url = "https://zenodo.org/records/14190900/files/refs.zip?download=1"
+        test_url = "https://zenodo.org/records/14172228/files/for_slicer_recon.zip?download=1"
+
         time_per_projection = 15.0
         scale = 1000.00
         random_seed = 0
@@ -49,19 +52,12 @@ class SimindToDicomConverterTest(ScriptedLoadableModuleTest):
                 if file.is_file():
                     file.unlink()
         self.delayDisplay("Downloading test jaszak simind data")
-        simind_data_path = Path(slicer.app.temporaryPath) /"jaszak_phantom_simind_data"
-        simind_data_path.mkdir(parents=True, exist_ok=True)
-        file_id = "1L8NoXEA6AOekyKta6S0PwiB41XZYPK0d"
-        zip_path = simind_data_path / '208keV_ME_jaszak.zip'
-        status = download_file_from_google_drive(file_id, zip_path)
-        if status:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(simind_data_path)
-        else:
-            logger.error(f"Failed to download jaszak simind data")
-        headerfile_1 = [(simind_data_path/"208keV_ME_jaszak"/"tot_w1.h00").as_posix()]
-        headerfile_2 = [(simind_data_path/"208keV_ME_jaszak"/"tot_w2.h00").as_posix()]
-        headerfile_3 = [(simind_data_path/"208keV_ME_jaszak"/"tot_w3.h00").as_posix()]
+        
+        self.tstDir = get_data_from_url(test_url, "test_data")
+        simind_data_path = self.tstDir/'for_slicer_recon'/'SIMIND'
+        headerfile_1 = [(simind_data_path/"tot_w1.h00").as_posix()]
+        headerfile_2 = [(simind_data_path/"tot_w2.h00").as_posix()]
+        headerfile_3 = [(simind_data_path/"tot_w3.h00").as_posix()]
         headerfiles = [headerfile_1, headerfile_2, headerfile_3]
         simind2DICOMProjections(headerfiles, time_per_projection, scale, random_seed, save_path, patient_name, study_description)
         if save_path.exists() and save_path.is_dir():
@@ -70,16 +66,11 @@ class SimindToDicomConverterTest(ScriptedLoadableModuleTest):
         jaszak_simind_to_dicom_file = pydicom.read_file(full_file_path)
         ########Getting groundtruth dicom file##################
         self.delayDisplay("Downloading test jaszak dicom data")
-        dicom_data_path = Path(slicer.app.temporaryPath) /"jaszak_phantom_dicom_data"
-        dicom_data_path.mkdir(parents=True, exist_ok=True)
-        file_id = "1I9wssohN-BdH9b9lPfGwmgSD5mT5Pg20"
+        self.refDir = get_data_from_url(ref_url, "ref_data")
+        dicom_data_path = self.refDir/'refs'/'simind_data'
         zip_path = dicom_data_path / 'test_jaszak_dicom.zip'
-        status = download_file_from_google_drive(file_id, zip_path)
-        if status:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(dicom_data_path)
-        else:
-            logger.error(f"Failed to download jaszak dicom data")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(dicom_data_path)
         dicom_path = dicom_data_path/"test_jaszak_dicom"/"dicom"/"lu177_jaszak_test_time15_scale1000_seed0"
         if dicom_path.exists() and dicom_path.is_dir():
             file = next(dicom_path.iterdir())
@@ -89,4 +80,3 @@ class SimindToDicomConverterTest(ScriptedLoadableModuleTest):
         self.assertTrue(mse_error<0.05)
         self.cleanUP()
         self.delayDisplay("Simind conversion to dicom test passed!")
-        logging.info('Simind conversion to dicom test passed!')
