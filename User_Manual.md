@@ -60,12 +60,17 @@ This module enables the reconstruction of SPECT projection data, supporting both
 
 <img src="images/converters.png" width="550"/>
 
-2. **Input Data:** Used to obtain photopeak projections from loaded DICOM data. Users can select multiple projection files corresponding to different bed positions of the same scan: the reconstructed object will automatically stitch the separate bed positions together. Users may also select multiple photopeaks for joint-multiple-photopeak reconstruction, whereby data from multiple photopeaks is used simultaenously in reconstruction; in this case, the user must provide the relative weighting for the calibration factors of each photopeak. For example, if the calibration factor for photopeak A is 11 CPS/MBq, and photopeak B is 10 CPS/MBq, then weights of 1.1 and 1.0 would suffice. In this case, the units would be in counts with respect to photopeak B. If the calibration factors are supplied directly as weights, then the units would be in MBq/s, and the user would need to scale the image by scan time per projection to get units of MBq.
+2. **Input Data:** Used to obtain photopeak projections from loaded DICOM data. Users can select multiple projection files corresponding to different bed positions of the same scan: the reconstructed object will automatically stitch the separate bed positions together. 
 
 <img src="images/input.png" width="550"/>
 
+* Users may also select multiple photopeaks for joint-multiple-photopeak reconstruction, whereby data from multiple photopeaks is used simultaenously in reconstruction; in this case, the user must provide the relative weighting for the calibration factors of each photopeak. For example, if the calibration factor for photopeak A is 11 CPS/MBq, and photopeak B is 10 CPS/MBq, then weights of 1.1 and 1.0 would suffice. In this case, the units of the reconstructed image would be in counts with respect to photopeak B. If the calibration factors are supplied directly as weights, then the units of the reconstructed image would be in MBq/s, and the user would need to scale the image by scan time per projection to get units of MBq.
+
+<img src="images/input_multipeak.png" width="550"/>
+
+
 3. **System Modeling:** Used to build the system matrix that defines the particular SPECT system
-    * *Attenuation Correction*: Provided the CT/attenuation map corresponding to the projectio data has been loaded into slicer, it can be selected here and used to enable attenuation correction.
+    * *Attenuation Correction*: Provided the CT/attenuation map corresponding to the projection data has been loaded into slicer, it can be selected here and used to enable attenuation correction.
     * *Collimator Detector Response Modeling*: Users specify here the code (see [here](https://pytomography.readthedocs.io/en/latest/external_data.html)) that corresponds to the collimator used during acquisition. The intrinsic resolution of the scintillator crystals (in FHWM) can also be included.
     * *Scatter Correction*: The module currently supports dual energy window and triple energy window scatter correction. Users select from the energy windows corresponding to the projection data loaded in in the "Input Data" section.
 
