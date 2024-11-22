@@ -60,7 +60,7 @@ This module enables the reconstruction of SPECT projection data, supporting both
 
 <img src="images/converters.png" width="550"/>
 
-2. **Input Data:** Used to obtain photopeak projections from loaded DICOM data. Users can select multiple projection files corresponding to different bed positions of the same scan: the reconstructed object will automatically stitch the separate bed positions together.
+2. **Input Data:** Used to obtain photopeak projections from loaded DICOM data. Users can select multiple projection files corresponding to different bed positions of the same scan: the reconstructed object will automatically stitch the separate bed positions together. Users may also select multiple photopeaks for joint-multiple-photopeak reconstruction, whereby data from multiple photopeaks is used simultaenously in reconstruction; in this case, the user must provide the relative weighting for the calibration factors of each photopeak. For example, if the calibration factor for photopeak A is 11 CPS/MBq, and photopeak B is 10 CPS/MBq, then weights of 1.1 and 1.0 would suffice. In this case, the units would be in counts with respect to photopeak B. If the calibration factors are supplied directly as weights, then the units would be in MBq/s, and the user would need to scale the image by scan time per projection to get units of MBq.
 
 <img src="images/input.png" width="550"/>
 
