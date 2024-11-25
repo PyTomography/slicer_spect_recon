@@ -96,8 +96,3 @@ This module enables the reconstruction of SPECT projection data, supporting both
 2. Currently, the software only supports dual head SPECT systems with parallel hole collimators (and has only been tested on Siemens Symbia and GE Discovery scanners). 
 3. The module requires data to be in the DICOM format (but has a converter for other formats). Currently the only supported format for conversion to DICOM is SIMIND.
 
-# Limitations
-
-1. The module requires some basic knowledge of Slicer modules from the user, specifically DICOM import and data management.
-2. Currently, the software only supports dual head SPECT systems with parallel hole collimators (and has only been tested on Siemens Symbia and GE Discovery scanners). 
-3. The module requires data to be in the DICOM format (but has a converter for other formats). Currently the only supported format for conversion to DICOM is SIMIND.
