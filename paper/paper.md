@@ -12,14 +12,19 @@ authors:
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "2, 3" # (Multiple affiliations must be quoted)
   - name: Maziar Sabouri
+    orcid: 0000-0001-7525-8952
     affiliation: "1, 2"
   - name: Shadab Ahamed
+    orcid: 0000-0002-2051-6085
     affiliation: "1, 2"
   - name: Carlos Uribe
+    orcid: 0000-0003-3127-7478
     affiliation: "2, 4, 5"
   - name: Arman Rahmim
+    orcid: 0000-0002-9980-2403
     affiliation: "1, 2, 3, 5"
-  - name: Luke Polson
+  - name: Lucas A. Polson
+    orcid: 0000-0002-3182-2782
     affiliation: "1, 2"    
 affiliations:
  - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver Canada
@@ -32,7 +37,7 @@ affiliations:
    index: 4
  - name: Molecular Imaging and Therapy Department, BC Cancer, Vancouver Canada
    index: 5
-date: 06 September 2024
+date: 25 November 2024
 bibliography: paper.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
