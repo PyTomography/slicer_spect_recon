@@ -27,15 +27,15 @@ authors:
     orcid: 0000-0002-3182-2782
     affiliation: "1, 2" 
 affiliations:
- - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver Canada
+ - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver, Canada
    index: 1
- - name: Department of Integrative Oncology, BC Cancer Research Institute, Vancouver Canada
+ - name: Department of Integrative Oncology, BC Cancer Research Institute, Vancouver, Canada
    index: 2
- - name: School of Biomedical Engineering, University of British Columbia, Vancouver Canada
+ - name: School of Biomedical Engineering, University of British Columbia, Vancouver, Canada
    index: 3
- - name: Department of Radiology, University of British Columbia, Vancouver Canada
+ - name: Department of Radiology, University of British Columbia, Vancouver, Canada
    index: 4
- - name: Molecular Imaging and Therapy Department, BC Cancer, Vancouver Canada
+ - name: Molecular Imaging and Therapy Department, BC Cancer Research Institute, Vancouver, Canada
    index: 5
 date: 06 September 2024
 bibliography: paper.bib
