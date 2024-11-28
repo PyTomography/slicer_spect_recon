@@ -43,7 +43,7 @@ bibliography: paper.bib
 
 # Summary
 
-`SlicerSPECTRecon` is a `3D Slicer` [@Kikinis2014-3DSlicer] extension designed for Single Photon Emission Computed Tomography (SPECT) image reconstruction. It offers a range of popular reconstruction algorithms and requires raw projection data from clinical or Monte Carlo simulated scanners. Built with the PyTomography python library [@pytomography], it features GPU-accelerated functionality for fast reconstruction. The extension includes a graphical user interface for the selection of reconstruction parameters, and reconstructed images can be post-processed using all available `3D Slicer` functionalities.
+`SlicerSPECTRecon` is a `3D Slicer` [@Kikinis2014-3DSlicer] extension designed for Single Photon Emission Computed Tomography (SPECT) image reconstruction. It offers a range of popular reconstruction algorithms and requires raw projection data from clinical or Monte Carlo simulated scanners. Built with the PyTomography Python library [@pytomography], it features GPU-accelerated functionality for fast reconstruction. The extension includes a graphical user interface for the selection of reconstruction parameters, and reconstructed images can be post-processed using all available `3D Slicer` functionalities.
 
 
 # Statement of need
