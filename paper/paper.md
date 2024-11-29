@@ -27,33 +27,28 @@ authors:
     orcid: 0000-0002-3182-2782
     affiliation: "1, 2"    
 affiliations:
- - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver Canada
+ - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver, Canada
    index: 1
- - name: Department of Integrative Oncology, BC Cancer Research Institute, Vancouver Canada
+ - name: Department of Integrative Oncology, BC Cancer Research Institute, Vancouver, Canada
    index: 2
- - name: School of Biomedical Engineering, University of British Columbia, Vancouver Canada
+ - name: School of Biomedical Engineering, University of British Columbia, Vancouver, Canada
    index: 3
- - name: Department of Radiology, University of British Columbia, Vancouver Canada
+ - name: Department of Radiology, University of British Columbia, Vancouver, Canada
    index: 4
- - name: Molecular Imaging and Therapy Department, BC Cancer, Vancouver Canada
+ - name: Molecular Imaging and Therapy Department, BC Cancer Research Institute, Vancouver, Canada
    index: 5
 date: 25 November 2024
 bibliography: paper.bib
-
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
 
-`SlicerSPECTRecon` is a `3D Slicer` [@Kikinis2014-3DSlicer] extension designed for Single Photon Emission Computed Tomography (SPECT) image reconstruction. It offers a range of popular reconstruction algorithms and requires raw projection data from clinical or Monte Carlo simulated scanners. Built with the PyTomography python library [@pytomography], it features GPU-accelerated functionality for fast reconstruction. The extension includes a graphical user interface for the selection of reconstruction parameters, and reconstructed images can be post-processed using all available `3D Slicer` functionalities.
+`SlicerSPECTRecon` is a `3D Slicer` [@Kikinis2014-3DSlicer] extension designed for Single Photon Emission Computed Tomography (SPECT) image reconstruction. It offers a range of popular reconstruction algorithms and requires raw projection data from clinical or Monte Carlo simulated scanners. Built with the PyTomography Python library [@pytomography], it features GPU-accelerated functionality for fast reconstruction. The extension includes a graphical user interface for the selection of reconstruction parameters, and reconstructed images can be post-processed using all available `3D Slicer` functionalities.
 
 
 # Statement of need
 
-SPECT imaging is used to measure the 3D distribution of a radioactive molecule within a patient; it requires (i) acquisition of 2D `projection` images at different angles using a gamma camera followed by (ii) the use of a tomographic image reconstruction algorithm to obtain a 3D radioactivity distribution consistent with the acquired data. While there exist many commercial products for image reconstruction, as well as multiple low-level software packages [@pytomography] [@STIR] [@castor], there is currently no open source graphic user interface (GUI) that provides access to the latest reconstruction algorithms. Due to continuing research interest in the implications of different reconstruction techniques on various clinical tasks [@hermes_spect_ap] [@spect_ai], there is a need for a open-source GUI for SPECT reconstruction.
+SPECT imaging is used to measure the 3D distribution of a radioactive molecule within a patient; it requires (i) acquisition of 2D `projection` images at different angles using a gamma camera followed by (ii) the use of a tomographic image reconstruction algorithm to obtain a 3D radioactivity distribution consistent with the acquired data. While there exist many commercial products for image reconstruction, as well as multiple low-level software packages [@pytomography; @STIR; @castor], there is currently no open source graphic user interface (GUI) that provides access to the latest reconstruction algorithms. Due to continuing research interest in the implications of different reconstruction techniques on various clinical tasks [@hermes_spect_ap; @spect_ai], there is a need for a open-source GUI for SPECT reconstruction.
 
 
 # Overview of SlicerSPECTRecon
@@ -70,9 +65,9 @@ The `System Modeling` component considers the system matrix $H$, as well as addi
 
 The third component, likelihoods, considers the likelihood function $L$. Currently, the extension only supports the `PoissonLogLikelihood` likelihood, which correctly describes the data acquired in SPECT imaging. It may be desirable in the future to test alternative likelihood functions, so this is left as a seperate module.
 
-The fourth component, algorithms, considers the reconstruction algorithm $A$. Currently, the extension supports the ordered subset expectation maximum (OSEM) [@osem], block sequential regularized expectation maximum (BSREM) [@BSREM] and ordered subset maximum a posteriori one step late (OSMAPOSL) [@OSL] algorithms. Regularized algorithms can use the quadratic, log-cosh, and relative difference penalty [@RDP] priors; these priors can also utilize a provided anatomical image to modify the weighting by only including contributions from the top N neighbours. Additional algorithms may be added based on community request.
+The fourth component, algorithms, considers the reconstruction algorithm $A$. Currently, the extension supports the ordered subset expectation maximum [OSEM, @osem], block sequential regularized expectation maximum [BSREM, @BSREM] and ordered subset maximum a posteriori one step late [OSMAPOSL, @OSL] algorithms. Regularized algorithms can use the quadratic, log-cosh, and relative difference penalty [@RDP] priors; these priors can also utilize a provided anatomical image to modify the weighting by only including contributions from the top N neighbours. Additional algorithms may be added based on community request.
 
- The `Data Converters` component permits the conversion of raw SPECT data from various file formats (such as `SIMIND` [@simind] and `GATE` [@gate]) into DICOM format so it can be loaded using the native data readers of `3D Slicer`. While the extension currently has support for the conversion of `SIMIND` data, more data converters may be added in the future depending on community request. The `Post-Reconstruction` component contains functionality that is applicable for use on reconstructed images. One such example is the computation of uncertainty on total counts within segmented regions of interest.
+ The `Data Converters` component permits the conversion of raw SPECT data from various file formats, such as `SIMIND` [@simind] and `GATE` [@gate], into DICOM format so it can be loaded using the native data readers of `3D Slicer`. While the extension currently has support for the conversion of `SIMIND` data, more data converters may be added in the future depending on community request. The `Post-Reconstruction` component contains functionality that is applicable for use on reconstructed images. One such example is the computation of uncertainty on total counts within segmented regions of interest.
 
 \autoref{fig:fig1} contains a screenshot of the extension along with a sample reconstructed image in the 3D Slicer viewer.   
 
