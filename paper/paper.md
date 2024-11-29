@@ -23,9 +23,9 @@ authors:
   - name: Arman Rahmim
     orcid: 0000-0002-9980-2403
     affiliation: "1, 2, 3, 5"
-  - name: Luke Polson
+  - name: Lucas A. Polson
     orcid: 0000-0002-3182-2782
-    affiliation: "1, 2" 
+    affiliation: "1, 2"    
 affiliations:
  - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver, Canada
    index: 1
@@ -37,7 +37,7 @@ affiliations:
    index: 4
  - name: Molecular Imaging and Therapy Department, BC Cancer Research Institute, Vancouver, Canada
    index: 5
-date: 06 September 2024
+date: 25 November 2024
 bibliography: paper.bib
 ---
 
