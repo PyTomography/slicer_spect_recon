@@ -7,7 +7,7 @@ tags:
   - spect
   - image reconstruction
 authors:
-  - name: Obed K. Dzikunu
+  - name: Obed Dzikunu
     orcid: 0000-0002-1122-0629
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "2, 3" # (Multiple affiliations must be quoted)
@@ -22,7 +22,7 @@ authors:
   - name: Luke Polson
     affiliation: "1, 2"    
 affiliations:
- - name: Deparment of Physics & Astronomy, University of British Columbia, Vancouver Canada
+ - name: Department of Physics & Astronomy, University of British Columbia, Vancouver Canada
    index: 1
  - name: Department of Integrative Oncology, BC Cancer Research Institute, Vancouver Canada
    index: 2
@@ -63,7 +63,7 @@ Once the raw data is loaded into the 3D slicer interface, the user can select th
 
 The `System Modeling` component considers the system matrix $H$, as well as additional corrections such as scatter $s$. Selecting `Attenuation Correction` enables attenuation correction during reconstruction; users must specify a corresponding CT image used to generate a mu-map. Selecting `Collimator Detector Response Modeling` enables modeling of the collimator and detector spatial resolution in image reconstruction. Users must specify the collimator code, defined on [the PyTomography data page](https://pytomography.readthedocs.io/en/latest/data_tables/collimator_data.html#collimator-data-index), as well as the intrinsic spatial resolution of the scintillator crystals. Selecting `Scatter Correction` enables scatter correction during reconstruction; users must select the scatter correction method as well as supporting data required for the method.
 
-The third component, likelihoods, considers the likelihood function $L$. Currently, the extension only supports the `PoissonLogLikelihood` likelihood, which correctly describes the data acquired in SPECT imaging. It may be desirable in the future to test alternative likelihood functions, so this is left as a seperate module.
+The third component, likelihoods, considers the likelihood function $L$. Currently, the extension only supports the `PoissonLogLikelihood` likelihood, which correctly describes the data acquired in SPECT imaging. It may be desirable in the future to test alternative likelihood functions, so this is left as a separate module.
 
 The fourth component, algorithms, considers the reconstruction algorithm $A$. Currently, the extension supports the ordered subset expectation maximum (OSEM) [@osem], block sequential regularized expectation maximum (BSREM) [@BSREM] and ordered subset maximum a posteriori one step late (OSMAPOSL) [@OSL] algorithms. Regularized algorithms can use the quadratic, log-cosh, and relative difference penalty [@RDP] priors; these priors can also utilize a provided anatomical image to modify the weighting by only including contributions from the top N neighbours. Additional algorithms may be added based on community request.
 
@@ -71,7 +71,7 @@ The fourth component, algorithms, considers the reconstruction algorithm $A$. Cu
 
 \autoref{fig:fig1} contains a screenshot of the extension along with a sample reconstructed image in the 3D Slicer viewer.   
 
-![Left: user interface for the proposed extension. Right: reconstructed coronal slice from a patient receiving ${}^{177}$Lu-PSMA-617 radiopharmaceutical therapy (color) overlayed on a corresponding CT (greyscale). Raw SPECT data consisted of two bed positions that were automatically stitched together after each was reconstructed; the raw data was acquired on a GE Discovery 670 camera.\label{fig:fig1}](with_recon.png)
+![Left: user interface for the proposed extension. Right: reconstructed coronal slice from a patient receiving ${}^{177}$Lu-PSMA-617 radiopharmaceutical therapy (color) overlaid on a corresponding CT (greyscale). Raw SPECT data consisted of two bed positions that were automatically stitched together after each was reconstructed; the raw data was acquired on a GE Discovery 670 camera.\label{fig:fig1}](with_recon.png)
 
 
 # Acknowledgements
