@@ -7,7 +7,7 @@ tags:
   - spect
   - image reconstruction
 authors:
-  - name: Obed Dzikunu
+  - name: Obed K. Dzikunu
     orcid: 0000-0002-1122-0629
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "2, 3" # (Multiple affiliations must be quoted)
