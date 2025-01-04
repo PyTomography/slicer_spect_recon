@@ -124,15 +124,18 @@ isbn = {978-1-4614-7656-6},
 doi={10.1007/978-1-4614-7657-3_19},
 }
 
-@misc{pytomography,
-      title={PyTomography: A {Python} Library for Quantitative Medical Image Reconstruction}, 
-      author={Lucas Polson and Roberto Fedrigo and Chenguang Li and Maziar Sabouri and Obed Dzikunu and Shadab Ahamed and Nikolaos Karakatsanis and Arman Rahmim and Carlos Uribe},
-      year={2024},
-      eprint={2309.01977},
-      archivePrefix={arXiv},
-      primaryClass={physics.med-ph},
-      doi={10.48550/arXiv.2309.01977},
-      url={https://arxiv.org/abs/2309.01977}, 
+@article{pytomography,
+title = {PyTomography: A python library for medical image reconstruction},
+journal = {SoftwareX},
+volume = {29},
+pages = {102020},
+year = {2025},
+issn = {2352-7110},
+doi = {10.1016/j.softx.2024.102020},
+url = {https://www.sciencedirect.com/science/article/pii/S235271102400390X},
+author = {Lucas A. Polson and Roberto Fedrigo and Chenguang Li and Maziar Sabouri and Obed Dzikunu and Shadab Ahamed and Nicolas Karakatsanis and Sara Kurkowska and Peyman Sheikhzadeh and Pedro Esquinas and Arman Rahmim and Carlos Uribe},
+keywords = {Medical imaging, Image reconstruction, SPECT, PET},
+abstract = {There is a need for open-source libraries in emission tomography that (i) use modern and popular backend code to encourage community contributions and (ii) offer support for the multitude of reconstruction techniques available in recent literature, such as those that employ artificial intelligence. The purpose of this research was to create and evaluate a GPU-accelerated, open-source, and user-friendly image reconstruction library, designed to serve as a central platform for the development, validation, and deployment of various tomographic reconstruction algorithms. PyTomography was developed using Python and inherits the GPU-accelerated functionality of PyTorch and parallelproj for fast computations. Its flexible and modular design decouples system matrices, likelihoods, and reconstruction algorithms, simplifying the process of integrating new imaging modalities using various python tools. Example use cases demonstrate the software capabilities in parallel hole SPECT and listmode PET imaging. Overall, we have developed and publicly share PyTomography, a highly optimized and user-friendly software for medical image reconstruction, with a class hierarchy that fosters the development of novel imaging applications.}
 }
 
 @INPROCEEDINGS{spect_proj_interp,
