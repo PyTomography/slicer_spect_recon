@@ -39,7 +39,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         ScriptedLoadableModuleLogic.__init__(self)
         self.stored_recon_iters = {}
         
-    def get_system_matrix(self, file_NM, attenuation_toggle, ct_file, psf_toggle, collimator, intrinsic_resolution, index_peak):
+    def get_system_matrix(self, file_NM, attenuation_toggle, ct_file, psf_toggle, collimator, intrinsic_resolution, index_peak, advanced_collimator_code):
         object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak)
         obj2obj_transforms = []
         if attenuation_toggle:
@@ -51,9 +51,12 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
             att_transform = SPECTAttenuationTransform(attenuation_map)
             obj2obj_transforms.append(att_transform)
         if psf_toggle:
-            _ , mean_window_energies, _= getEnergyWindow(file_NM)
-            peak_window_energy = mean_window_energies[index_peak]
-            psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, peak_window_energy, intrinsic_resolution=intrinsic_resolution)
+            if advanced_collimator_code:
+                psf_meta = None # TODO FILL IN
+            else:
+                _ , mean_window_energies, _= getEnergyWindow(file_NM)
+                peak_window_energy = mean_window_energies[index_peak]
+                psf_meta = dicom.get_psfmeta_from_scanner_params(collimator, peak_window_energy, intrinsic_resolution=intrinsic_resolution)
             psf_transform = SPECTPSFTransform(psf_meta)
             obj2obj_transforms.append(psf_transform)
         system_matrix = SPECTSystemMatrix(
@@ -73,6 +76,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
         psf_toggle: bool,
         collimator_code: str,
         intrinsic_resolution: float,
+        advanced_collimator_code: str | None,
         index_peak: int | Sequence[int], 
         index_upper: int | Sequence[int],
         index_lower: int | Sequence[int],
@@ -102,7 +106,7 @@ class SlicerSPECTReconLogic(ScriptedLoadableModuleLogic):
                 system_matrices = []
                 for i in range(len(index_peak)):
                     photopeak_, scatter_ = get_photopeak_scatter(bed_idx, files_NM, index_peak[i], index_lower[i], index_upper[i])
-                    system_matrix = self.get_system_matrix(files_NM[bed_idx], attenuation_toggle, CT_node, psf_toggle, collimator_code, intrinsic_resolution, index_peak[i])
+                    system_matrix = self.get_system_matrix(files_NM[bed_idx], attenuation_toggle, CT_node, psf_toggle, collimator_code, intrinsic_resolution, index_peak[i], advanced_collimator_code)
                     photopeak.append(photopeak_)
                     scatter.append(scatter_)
                     system_matrices.append(system_matrix)
