@@ -159,6 +159,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         logging.info('setupConnections called')
         self.ui.attenuation_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.psf_toggle.connect('toggled(bool)', self.hideShowItems)
+        self.ui.advancedPSFCheckBox.connect('toggled(bool)', self.hideShowItems)
         self.ui.scatter_toggle.connect('toggled(bool)', self.hideShowItems)
         self.ui.usePriorAnatomicalCheckBox.connect('toggled(bool)', self.hideShowItems)
         self.ui.algorithm_selector_combobox.connect('currentTextChanged(QString)', self.hideShowItems)
@@ -295,6 +296,8 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         logging.info('hideShowItems called')
         self.ui.AttenuationGroupBox.setVisible(self.ui.attenuation_toggle.checked)
         self.ui.PSFGroupBox.setVisible(self.ui.psf_toggle.checked)
+        # Advanced PSF model
+        self.ui.advancedPSFGroupBox.setVisible(self.ui.advancedPSFCheckBox.checked)
         self.ui.ScatterGroupBox.setVisible(self.ui.scatter_toggle.checked)
         # Scatter stuff
         if self.ui.spect_scatter_combobox.currentText=='Energy Window':
@@ -488,6 +491,10 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         files_NM = get_filesNM_from_NMNodes(self._projectionList)
         print(files_NM)
         photopeak_idx, upper_window_idx, lower_window_idx = self._get_photopeak_scatter_idxs(files_NM[0])
+        if self.ui.advancedPSFCheckBox.checked():
+            advanced_collimator_code = self.ui.advancedPSFGroupBox.currentText
+        else:
+            advanced_collimator_code = None
         recon_volume_node = self.logic.reconstruct( 
             progressDialog=progress,
             files_NM = files_NM,
@@ -495,6 +502,7 @@ class SlicerSPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             CT_node = self.ui.attenuationdata.currentNode(),
             psf_toggle = self.ui.psf_toggle.checked,
             collimator_code = self.ui.spect_collimator_combobox.currentText, 
+            advanced_collimator_code = advanced_collimator_code
             intrinsic_resolution = self.ui.IntrinsicResolutionSpinBox.value,
             index_peak = photopeak_idx, 
             index_upper = upper_window_idx,
