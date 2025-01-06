@@ -1,6 +1,6 @@
 # SPECT Tomographic Reconstruction 3D Slicer Extension
 
-This is the official repository for the `Slicer` extension `SlicerSPECTRecon`.
+This is the official repository for the `Slicer` extension `SlicerSPECTRecon`. **For details on how to use, see the [user manual](https://github.com/PyTomography/Slicer/blob/main/User_Manual.md) and the [associated youtube video tutorial](https://www.youtube.com/watch?v=DzV1soWTzEA)**
 
 This module enables the reconstruction of raw SPECT projection data, providing customizable options for image modeling and image reconstruction. The module has a SIMIND to DICOM converter to permit reconstruction of SIMIND Monte Carlo data.
 
@@ -17,9 +17,10 @@ Please refer to the `User_Manual.md` file for further information
 ## User interface
 
 - Inputs
-  - Input volume: input SPECT/CT dicom files, simind file (convert to dicom using the data converter)
+  - SPECT projection data
+  - (optional) CT data for attenuation correction
 - Outputs
-  - Reconstructed volume: The volume will be saved under the specified name (or as the dataset name appended with _reconstructed) and will be located within the Subject Hierarchy in the Data Module.
+  - a 3D reconstruction SPECT image. The volume will be saved under the specified name (or as the dataset name appended with _reconstructed) and will be located within the Subject Hierarchy in the Data Module.
 
 ## Resources
 
