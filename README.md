@@ -15,7 +15,7 @@ The module is divided into the following sections:
 Please refer to the `User_Manual.md` file for further information
 
 ## User interface
-The module is located under the parent category "Tomographic Reconstruction" with the title "SPECT reconstruction". For more details, see the [user manual](https://github.com/PyTomography/Slicer/blob/main/User_Manual.md)
+Within Slicer, the "SPECT reconstruction" module is located under the parent category "Tomographic Reconstruction". For more details, see the [user manual](https://github.com/PyTomography/Slicer/blob/main/User_Manual.md)
 
 - Inputs
   - SPECT projection data
