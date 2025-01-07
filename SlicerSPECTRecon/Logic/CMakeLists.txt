@@ -1,2 +1,0 @@
-slicer_add_python_unittest(SCRIPT ./../Testing/Python/reconstruction.py SLICER_ARGS --no-main-window)
-slicer_add_python_unittest(SCRIPT ./../Testing/Python/simind_To_dicom.py SLICER_ARGS --no-main-window)

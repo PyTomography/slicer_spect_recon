@@ -1,0 +1,13 @@
+{
+    "psfModellingMeta":
+    {
+        "collimator":"GI-MEGP",
+        "intrinsic_resolution":0.4
+    },
+    "toggle":
+    {
+        "attenuation_toggle": "True",
+        "psf_toggle": "True"
+    },
+    "sigma_fit_params": [0.022, 0.127, 0.170]
+}
