@@ -1,0 +1,8 @@
+- url to sample jaszak_simind_data
+https://drive.google.com/file/d/1L8NoXEA6AOekyKta6S0PwiB41XZYPK0d/view?usp=sharing
+- url to sample jaszak_simind_data dicom format
+https://drive.google.com/file/d/1I9wssohN-BdH9b9lPfGwmgSD5mT5Pg20/view?usp=sharing
+- url to sample CT file
+https://drive.google.com/file/d/1kbl4nqflovxOB0N9z8YrpmZHzTnPtnyu/view?usp=sharing
+- url to sample SPECT file
+https://drive.google.com/file/d/1bCz_hLgASAiQ38QrRlgrJ3lH_lOlqQb1/view?usp=sharing
