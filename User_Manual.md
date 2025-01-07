@@ -37,18 +37,27 @@ Once Slicer is restarted, the SlicerSPECTRecon module will be available from *Al
 
 <img src="images/modules_list.png" width="300"/>
 
-## Tutorial
+# Tutorial
 In addition to the basic tutorial below, there is a comprehensive tutorial demonstrating how to use the extension [on youtube at this link](https://www.youtube.com/watch?v=DzV1soWTzEA). The tutorial data can be obtained [at the following link on zenodo](https://zenodo.org/records/14172228). Below is a quick and complete tutorial for reconstruction of the Lu-177 multibed SPECT data found at that link:
 
-1. Import tutorial data downloaded from Zenodo into Slicer DICOM database
+1. Import tutorial data downloaded from Zenodo into Slicer DICOM database 
+<img src="images/tutorial_images/1_import_dicom.png" width="400"/>
 2. Load data (2 SPECT bed positions and 1 CT file) into Slicer from DICOM database
+<img src="images/tutorial_images/2_import_patient.png" width="400"/>
 3. Open extension
+<img src="images/tutorial_images/3_open_extension.png" width="400"/>
 4. Select data to reconstruct; in this case both SPECT field of views (FOVs) are selected, and will automatically be stitched together after reconstructions. You can also reconstruct each seperately.
+<img src="images/tutorial_images/4_open_projections.png" width="400"/>
 5. Select the photopeak to reconstruct. The standard photopeak for Lu-177 reconstruction is the 208keV photopeak (187.2keV-228.8keV)
+<img src="images/tutorial_images/5_open_photopeak.png" width="400"/>
 6. Enable attenuation correction. This is an optional feature in the module, but essential for quantitative SPECT reconstruction. The loaded CT image is selected to create the attenuation map needed for reconstruction.
+<img src="images/tutorial_images/6_attenuation_correction.png" width="400"/>
 7. Enable collimator detector response (CDR) modeling, also known as point spread function (PSF) modeling. The collimator code is GI-MEGP, and this corresponds to the physical collimator used for image acquisition. This is an optional feature in the module, but essential for quantitative SPECT reconstruction.
+<img src="images/tutorial_images/7_psf_modeling.png" width="400"/>
 8. Enable scatter correction. In this case we select both an upper and lower energy window, meaning that triple energy window (TEW) scatter correction will be used. If either is left as None, it is assumed that there are zero counts there. For example, setting the upper window to None means the dual energy window (DEW) is used.
+<img src="images/tutorial_images/8_scatter_correction.png" width="400"/>
 9. Set the iterations and subsets and reconstruct. 4 iterations and 8 subsets is typical for Lu-177 SPECT reconstruction.
+<img src="images/tutorial_images/9_reconstruct.png" width="400"/>
 
 # Description
 
