@@ -46,13 +46,6 @@ from slicer import vtkMRMLScalarVolumeNode
 from DICOMLib import DICOMUtils
 import re
 
-from Logic.SPECTReconLogic import SPECTReconLogic
-from Logic.VtkkmrmlUtils import *
-from Logic.MetadataUtils import *
-from Logic.SimindToDicom import *
-from Testing.Python.reconstruction import ReconstructionTest
-from Testing.Python.simind_to_dicom import SimindToDicomConverterTest
-
 __submoduleNames__ = [
     "SPECTReconLogic",
     "Algorithms",
@@ -106,6 +99,8 @@ class SPECTRecon(ScriptedLoadableModule):
         :param msec: delay to associate with :func:`ScriptedLoadableModuleTest.delayDisplay()`.
         """
         logging.info("\n******* Starting Tests of SPECTRecon **********\n")
+        from Testing.Python.reconstruction import ReconstructionTest
+        from Testing.Python.simind_to_dicom import SimindToDicomConverterTest
         # Test SIMIND Converter
         testCase = SimindToDicomConverterTest()
         testCase.messageDelay = msec
@@ -142,6 +137,8 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         ensure_packages_installed()
         import pytomography
         import torch
+        from Logic.SPECTReconLogic import SPECTReconLogic
+        from Logic.VtkkmrmlUtils import createTable
         # --------------- UI ---------------
         ScriptedLoadableModuleWidget.setup(self)
         # Load widget from .ui file (created by Qt Designer).
@@ -191,6 +188,8 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.photopeak_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_upperwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
         self.ui.spect_lowerwindow_combobox.connect('currentTextChanged(QString)', self.updateParameterNodeFromGUI)
+        self.ui.upperWindowWeightDoubleSpinBox.connect('valueChanged(double)', self.updateParameterNodeFromGUI)
+        self.ui.lowerWindowWeightDoubleSpinBox.connect('valueChanged(double)', self.updateParameterNodeFromGUI)
         self.ui.IntrinsicResolutionSpinBox.connect('valueChanged(float)', self.updateParameterNodeFromGUI)
         self.ui.scatterPreBlurDoubleSpinBox.connect('valueChanged(float)', self.updateParameterNodeFromGUI)
         self.ui.osem_iterations_spinbox.connect('valueChanged(int)', self.updateParameterNodeFromGUI)
@@ -202,6 +201,7 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.PriorGroupBox.setVisible(False)
         # Buttons
         self.ui.osem_reconstruct_pushbutton.connect('clicked(bool)', self.onReconstructButton)
+        self.ui.postReconSmoothDoubleSpinBox.connect('valueChanged(float)', self.updateParameterNodeFromGUI)
         self.ui.computeUncertaintyPushButton.connect('clicked(bool)', self.onComputeUncertaintyButton)
         # Data converters
         self.ui.data_converter_comboBox.connect('currentTextChanged(QString)', self.hideShowItems)
@@ -452,6 +452,8 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.updateGUIFromParameterNode()
 
     def getProjectionData(self,node):
+        from Logic.MetadataUtils import getEnergyWindow
+        from Logic.VtkkmrmlUtils import pathFromNode
         inputdatapath = pathFromNode(node)
         energy_window,_,_ = getEnergyWindow(inputdatapath)
         all_combo_boxes = [
@@ -473,6 +475,7 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             combo_box.addItems(energy_window)
             
     def _get_photopeak_scatter_idxs(self, file_NM):
+        from Logic.MetadataUtils import getEnergyWindow
         _, mean_window_energies, idx_sorted = getEnergyWindow(file_NM)
         # Photopeak
         if self.ui.multiPhotopeakCheckbox.checked:
@@ -503,6 +506,7 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return photopeak_idx, upperwindow_idx, lowerwindow_idx
 
     def onReconstructButton(self):
+        from Logic.VtkkmrmlUtils import get_filesNM_from_NMNodes
         progress = slicer.util.createProgressDialog()
         progress.labelText = "Reconstructing..."
         progress.value = 0
@@ -526,7 +530,9 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             index_peak = photopeak_idx, 
             index_upper = upper_window_idx,
             index_lower = lower_window_idx,
-            scatter_sigma = self.ui.scatterPreBlurDoubleSpinBox.value,
+            weighting_upper = self.ui.upperWindowWeightDoubleSpinBox.value,
+            weighting_lower = self.ui.lowerWindowWeightDoubleSpinBox.value,
+            scatter_fwhm = self.ui.scatterPreBlurDoubleSpinBox.value,
             algorithm_name = self.ui.algorithm_selector_combobox.currentText,
             prior_type = self.ui.priorFunctionSelector.currentText,
             prior_beta = self.ui.priorBetaSpinBox.value,
@@ -537,6 +543,7 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             N_prior_anatomy_nearest_neighbours = self.ui.nearestNeighboursSpinBox.value,
             n_iters = self.ui.osem_iterations_spinbox.value, 
             n_subsets = self.ui.osem_subsets_spinbox.value,
+            post_recon_smoothing = self.ui.postReconSmoothDoubleSpinBox.value,
             store_recons= self.ui.storeItersCheckBox.checked,
             test_mode = False
         )
@@ -544,6 +551,7 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.logic.DisplayVolume(recon_volume_node)
         
     def onComputeUncertaintyButton(self):
+        from Logic.VtkkmrmlUtils import displayTable
         # Compute uncertainties
         recon_image_node = self.ui.UncImageMRMLNodeComboBox.currentNode()
         mask = slicer.util.arrayFromSegmentBinaryLabelmap(
@@ -574,6 +582,7 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     # -------------------------------------------------
     
     def saveSIMINDProjections(self, called=None, event=None):
+        from Logic.SimindToDicom import simind2DICOMProjections
         n_windows = self.ui.simind_nenergy_spinBox.value
         headerfiles = []
         time_per_projection = self.ui.simind_tperproj_doubleSpinBox.value
@@ -599,6 +608,7 @@ class SPECTReconWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
         
     def saveSIMINDAmap(self, called=None, event=None):
+        from Logic.SimindToDicom import simind2DICOMAmap
         save_path = os.path.join(
             self.ui.simindOutputFolderPathLineEdit.currentPath,
             'attenuation_map'

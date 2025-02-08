@@ -25,7 +25,7 @@ def get_object_meta_proj_meta(bed_idx, files_NM, index_peak):
     object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak)
     return object_meta, proj_meta
 
-def get_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower=None, index_upper=None, scatter_sigma=0.0):
+def get_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower=None, index_upper=None, scatter_sigma=0.0, weighting_lower=0.5, weighting_upper=0.5):
     object_meta, proj_meta = dicom.get_metadata(files_NM[0], index_peak)
     projectionss = dicom.load_multibed_projections(files_NM)
     photopeak = projectionss[bed_idx][index_peak]
@@ -35,5 +35,5 @@ def get_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower=None, index
     # Dual or triple energy window
     else:
         file_NM = files_NM[bed_idx]
-        scatter = dicom.get_energy_window_scatter_estimate_projections(file_NM, projectionss[bed_idx], index_peak, index_lower, index_upper, sigma_r=scatter_sigma, sigma_z=scatter_sigma, proj_meta=proj_meta)
+        scatter = dicom.get_energy_window_scatter_estimate_projections(file_NM, projectionss[bed_idx], index_peak, index_lower, index_upper, sigma_r=scatter_sigma, sigma_z=scatter_sigma, proj_meta=proj_meta, weighting_lower=weighting_lower, weighting_upper=weighting_upper)
     return photopeak, scatter

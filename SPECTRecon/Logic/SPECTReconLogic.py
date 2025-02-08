@@ -10,6 +10,7 @@ from pytomography.projectors.SPECT import SPECTSystemMatrix
 from pytomography.projectors import ExtendedSystemMatrix
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform, CutOffTransform
+from pytomography.transforms.shared import GaussianFilter
 import numpy as np
 import pydicom
 import torch
@@ -47,7 +48,7 @@ class SPECTReconLogic(ScriptedLoadableModuleLogic):
         if attenuation_toggle:
             files_CT = filesFromNode(ct_file)
             try: # typical DICOM CT
-                attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak)
+                attenuation_map = dicom.get_attenuation_map_from_CT_slices(files_CT, file_NM, index_peak, HU2mu_technique='from_cortical_bone_fit')
             except: # if saved by SIMIND
                 attenuation_map = dicom.get_attenuation_map_from_file(files_CT[0])
             att_transform = SPECTAttenuationTransform(attenuation_map)
@@ -89,7 +90,9 @@ class SPECTReconLogic(ScriptedLoadableModuleLogic):
         index_peak: int | Sequence[int], 
         index_upper: int | Sequence[int],
         index_lower: int | Sequence[int],
-        scatter_sigma: float,
+        weighting_upper: float,
+        weighting_lower: float,
+        scatter_fwhm: float,
         algorithm_name: str,
         prior_type: str,
         prior_beta: float,
@@ -100,9 +103,11 @@ class SPECTReconLogic(ScriptedLoadableModuleLogic):
         N_prior_anatomy_nearest_neighbours: int,
         n_iters: int,
         n_subsets: int,
+        post_recon_smoothing: float,
         store_recons: bool = False,
         test_mode: bool = False,
     ): 
+        object_meta, proj_meta = dicom.get_metadata(files_NM[0], index_peak)
         if index_peak is None:
             logging.error("Please select a photopeak energy window")
             return
@@ -115,7 +120,7 @@ class SPECTReconLogic(ScriptedLoadableModuleLogic):
                 scatter = []
                 system_matrices = []
                 for i in range(len(index_peak)):
-                    photopeak_, scatter_ = get_photopeak_scatter(bed_idx, files_NM, index_peak[i], index_lower[i], index_upper[i], scatter_sigma)
+                    photopeak_, scatter_ = get_photopeak_scatter(bed_idx, files_NM, index_peak[i], index_lower[i], index_upper[i], scatter_fwhm/2.355, weighting_lower, weighting_upper)
                     system_matrix = self.get_system_matrix(files_NM[bed_idx], attenuation_toggle, CT_node, psf_toggle, collimator_code, intrinsic_resolution, index_peak[i], advanced_collimator_code)
                     photopeak.append(photopeak_)
                     scatter.append(scatter_)
@@ -125,7 +130,7 @@ class SPECTReconLogic(ScriptedLoadableModuleLogic):
                 system_matrix = ExtendedSystemMatrix(system_matrices)
             # if regular photopeak
             else: 
-                photopeak, scatter = get_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower, index_upper, scatter_sigma)
+                photopeak, scatter = get_photopeak_scatter(bed_idx, files_NM, index_peak, index_lower, index_upper, scatter_fwhm/2.355, weighting_lower, weighting_upper)
                 system_matrix = self.get_system_matrix(files_NM[bed_idx], attenuation_toggle, CT_node, psf_toggle, collimator_code, intrinsic_resolution, index_peak, advanced_collimator_code)
             # Build likelihood
             likelihood = PoissonLogLikelihood(system_matrix, photopeak, scatter)
@@ -156,13 +161,17 @@ class SPECTReconLogic(ScriptedLoadableModuleLogic):
             )
             callbacks = [callback0] + [DataStorageCallback(r.likelihood, r.object_prediction) for r in recon_algorithm_all_beds.reconstruction_algorithms[1:]]
             reconstructed_image_multibed = recon_algorithm_all_beds(n_iters, n_subsets, callback=callbacks)
-            volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM, test_mode)
-            # Store information for accessing later
-            self.stored_recon_iters[volume_node.GetID()] = [recon_algorithm_all_beds, callbacks]
         else:
             callback = LoadingCallback(progressDialog, n_iters, n_subsets)
             reconstructed_image_multibed = recon_algorithm_all_beds(n_iters, n_subsets, callback=callback)
-            volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM, test_mode)
+        if post_recon_smoothing > 1e-6:
+            filter = GaussianFilter(FWHM=post_recon_smoothing)
+            filter.configure(object_meta,proj_meta)
+            reconstructed_image_multibed = filter(reconstructed_image_multibed)
+        if store_recons:  # Store information for accessing later
+           
+            self.stored_recon_iters[volume_node.GetID()] = [recon_algorithm_all_beds, callbacks]
+        volume_node = self.create_volume_node_from_recon(reconstructed_image_multibed, files_NM, test_mode)
         progressDialog.close()
         return volume_node
     
