@@ -248,6 +248,13 @@
             <bool>false</bool>
            </property>
            <layout class="QGridLayout" name="gridLayout_4">
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="storeItersCheckBox">
+              <property name="text">
+               <string>Store all iterations (required for uncertainty estimation)</string>
+              </property>
+             </widget>
+            </item>
             <item row="0" column="0">
              <layout class="QHBoxLayout" name="horizontalLayout_5">
               <item>
@@ -297,12 +304,25 @@
               </item>
              </layout>
             </item>
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="storeItersCheckBox">
-              <property name="text">
-               <string>Store all iterations (required for uncertainty estimation)</string>
+            <item row="2" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_7">
+              <property name="topMargin">
+               <number>10</number>
               </property>
-             </widget>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_21">
+                <property name="text">
+                 <string>Post-Recon Gaussian Smoothing FWHM (cm)</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="postReconSmoothDoubleSpinBox"/>
+              </item>
+             </layout>
             </item>
            </layout>
           </widget>
@@ -1662,6 +1682,45 @@
                  </item>
                 </layout>
                </item>
+               <item row="0" column="1">
+                <layout class="QVBoxLayout" name="verticalLayout_15">
+                 <property name="sizeConstraint">
+                  <enum>QLayout::SetDefaultConstraint</enum>
+                 </property>
+                 <item>
+                  <widget class="QDoubleSpinBox" name="upperWindowWeightDoubleSpinBox">
+                   <property name="decimals">
+                    <number>4</number>
+                   </property>
+                   <property name="maximum">
+                    <double>1.000000000000000</double>
+                   </property>
+                   <property name="singleStep">
+                    <double>0.500000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.500000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QDoubleSpinBox" name="lowerWindowWeightDoubleSpinBox">
+                   <property name="decimals">
+                    <number>4</number>
+                   </property>
+                   <property name="maximum">
+                    <double>1.000000000000000</double>
+                   </property>
+                   <property name="singleStep">
+                    <double>0.100000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.500000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
               </layout>
              </widget>
             </item>
@@ -1673,7 +1732,7 @@
               <item>
                <widget class="QLabel" name="label_20">
                 <property name="text">
-                 <string>Gaussian Prefilter Sigma (cm)</string>
+                 <string>Gaussian Prefilter FWHM (cm)</string>
                 </property>
                </widget>
               </item>
@@ -1947,7 +2006,7 @@
       <item row="7" column="0">
        <widget class="ctkCollapsibleButton" name="PostReconCollapsibleButton">
         <property name="text">
-         <string>Post-Reconstruction</string>
+         <string>Additional Functionality</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_22">
          <item row="0" column="0">
